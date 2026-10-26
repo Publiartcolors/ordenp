@@ -1,0 +1,1743 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CONSULT-ART | Dashboard de Producción</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#0a0d11}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:#dbe4ea}
+#app-root{min-height:100vh;max-width:1250px;margin:auto;padding:22px;background:#0f1216}
+.op-h{font-size:21px;font-weight:700;color:#f2f6f8;margin:0}
+.op-sub{font-size:13px;color:#7c8896;margin:3px 0 0}
+.op-row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.op-tabs{display:flex;gap:6px;border-bottom:1px solid #232a32;margin:20px 0;padding-bottom:0;overflow-x:auto}
+.op-tab{padding:10px 15px;font-size:13px;color:#8b96a3;background:none;border:0;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
+.op-tab.active{color:#4fd1c5;border-bottom-color:#4fd1c5;font-weight:700}
+.op-card,.op-metric{background:#161b21;border:1px solid #232a32;border-radius:12px;padding:16px}
+.op-grid{display:grid;gap:12px}
+.op-field{display:flex;flex-direction:column;gap:5px;font-size:12px;color:#8b96a3}
+.op-field input,.op-field select,.op-field textarea,#role-select,#search-input,#designer-filter,#status-filter,#dash-designer-filter{
+background:#0f1216;border:1px solid #2b333c;color:#eef2f4;border-radius:8px;padding:9px 10px;font-size:13.5px;outline:none;font-family:inherit
+}
+.op-field input:focus,.op-field select:focus,.op-field textarea:focus,select:focus,input:focus{border-color:#4fd1c5}
+.op-btn{border-radius:8px;padding:9px 15px;font-size:13.5px;font-weight:650;cursor:pointer;border:1px solid transparent;font-family:inherit}
+.op-btn-primary{background:#4fd1c5;color:#09201e}
+.op-btn-primary:hover{background:#6adfd4}
+.op-btn-ghost{background:transparent;border-color:#2b333c;color:#cbd5db}
+.op-btn-ghost:hover{border-color:#4fd1c5;color:#4fd1c5}
+.op-btn-danger{background:#f6602c;color:#2a0e04}
+.op-btn-sm{padding:6px 10px;font-size:12px}
+.op-link{color:#4fd1c5;cursor:pointer;font-size:12.5px;background:none;border:0;padding:3px}
+.op-note{font-size:11.5px;color:#6b7684;margin:6px 0 0}.image-upload{border:1px dashed #39434d;border-radius:10px;padding:12px;background:#11161b}.image-upload-preview{margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}.image-upload-preview img{width:92px;height:68px;object-fit:contain;border-radius:7px;border:1px solid #2b333c;background:#0a0d11}.image-upload-preview span{font-size:11px;color:#7c8896}
+.op-empty{text-align:center;color:#6b7684;padding:35px 10px;font-size:13px}
+.op-badge{display:inline-block;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:700}
+.op-badge-pend{background:#3a2f0e;color:#f5c451}
+.op-badge-prod{background:#0e2c3a;color:#57c1e8}
+.op-badge-term{background:#123a1e;color:#5fd48a}
+.op-badge-entr{background:#26303a;color:#9fb0bd}.op-badge-gar{background:#451722;color:#ff7f91}
+.op-table{width:100%;border-collapse:collapse;font-size:13px}
+.op-table th{text-align:left;color:#7c8896;font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:8px 10px;border-bottom:1px solid #232a32}
+.op-table td{padding:10px;border-bottom:1px solid #1c222a;vertical-align:top}
+.op-table tr:hover td{background:#1a2027}
+.op-modal-bg{background:#0f1216ee;border:1px solid #2b333c;border-radius:12px;padding:18px;margin-top:14px}
+.metric-number{font-size:25px;font-weight:750;color:#f2f6f8}
+.metric-label{font-size:12px;color:#7c8896;margin-top:3px}
+.alert{padding:12px 14px;border-radius:9px;border:1px solid #63351f;background:#24150f;color:#ffb08d;font-size:13px;line-height:1.5}
+.good{border-color:#214d43;background:#10221f;color:#91e1d6}
+.chart-wrap{overflow-x:auto}
+.bar-chart{display:flex;align-items:flex-end;gap:18px;height:230px;padding:15px 10px 0}
+.bar-group{flex:1;min-width:85px;height:205px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+.bar-stack{width:60px;max-width:80%;display:flex;flex-direction:column-reverse;justify-content:flex-start;border-radius:5px 5px 0 0;overflow:hidden}
+.bar{min-height:2px}
+.bar-label{font-size:10px;color:#8b96a3;margin-top:8px;text-align:center}
+.legend{display:flex;gap:15px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.legend-item{font-size:11px;color:#cbd5db;display:flex;gap:6px;align-items:center}
+.legend-dot{width:10px;height:10px;border-radius:3px}
+.donut{width:180px;height:180px;border-radius:50%;display:grid;place-items:center;position:relative}
+.donut:after{content:"";width:112px;height:112px;background:#161b21;border-radius:50%;position:absolute}
+.donut-value{position:relative;z-index:2;font-size:19px;font-weight:750}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:13px;margin-top:14px}
+.detail-label{font-size:11px;color:#7c8896}
+.detail-value{font-size:13px;color:#eef2f4;margin-top:3px}
+#print-area{display:none}
+/* Impresión: media carta horizontal (8.5 × 5.5 pulgadas) */
+@page{size:8.5in 5.5in landscape;margin:0;}
+@media print{
+html,body{background:#fff!important;color:#111!important;width:8.5in;height:5.5in;margin:0!important;padding:0!important}
+body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+#app-root{display:none!important}
+/* La impresión se genera estrictamente en media carta horizontal: 8.5 × 5.5 pulgadas */
+a[href*="netlify"]{display:none!important}
+#print-area{display:block!important;width:8.5in;height:5.5in;margin:0!important;padding:0.25in;box-sizing:border-box;font-family:Arial,sans-serif;color:#111}
+.print-sheet{width:8in;height:5in;min-height:5in;font-size:9pt;line-height:1.2;overflow:hidden;box-sizing:border-box}
+.print-head{height:0.43in;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:5px;margin-bottom:7px}
+.print-head-title{font-size:15px;font-weight:800}.print-head-sub{font-size:8px;color:#555;margin-top:2px}.print-generated{font-size:9pt;font-weight:800;color:#0b4fae;margin-top:3px}.print-op{font-size:15px;font-weight:900}.op-carlos{color:#0b63ce!important}.op-sebastian{color:#7b35c8!important}.op-michael{color:#d96a13!important}.op-manuel{color:#159447!important}
+/* Imagen y tabla ocupan dos columnas iguales y exactamente la misma altura */
+.print-body{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:stretch;height:3.38in}
+.print-image-box{width:100%;height:3.38in;border:1px solid #bfc5ca;border-radius:3px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#f3f4f5}
+.print-images-grid{width:100%;height:100%;display:grid;grid-template-columns:repeat(2,1fr);grid-auto-rows:1fr;gap:4px;padding:4px}.print-image-item{border:1px solid #d0d5da;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff}.print-image-item img{display:block;width:100%;height:100%;object-fit:contain;object-position:center}.print-no-image{font-size:8px;color:#777;text-align:center;padding:8px}
+.print-table{width:100%;height:auto;border-collapse:collapse;table-layout:fixed;font-size:9pt}.print-table td{padding:1.5px 5px;border:1px solid #c8cdd2;vertical-align:middle;line-height:1.18}
+.print-table tr:nth-child(odd) td{background:#eef2f5}.print-table tr:nth-child(even) td{background:#fff}.print-table td:first-child{width:38%;font-weight:700;color:#26313a}.print-payment-credit td{background:#fff!important}.print-payment-credit .print-payment-method{font-weight:700;margin-right:6px}.print-payment-credit .print-payment-values{display:grid;grid-template-columns:1fr 1fr;width:100%;height:100%;box-sizing:border-box}.print-payment-credit .print-payment-cell{font-size:6pt;line-height:1;white-space:nowrap;box-sizing:border-box;padding:0 4px;font-weight:700;display:flex;align-items:center;gap:2px}.print-payment-credit .print-payment-cell + .print-payment-cell{border-left:1px solid #c8cdd2}.print-payment-credit .print-payment-credit-wrap{display:flex;align-items:center;gap:6px;width:100%;min-width:0}.print-payment-credit .print-payment-method{font-size:6pt;font-weight:700;color:#111;white-space:nowrap}.print-payment-credit .print-payment-values{display:flex;flex:1;min-width:0}.print-payment-credit .print-payment-cell{font-size:6pt;line-height:1;white-space:nowrap;box-sizing:border-box;padding:0 3px;font-weight:700;display:flex;align-items:center;gap:1px;flex:1;min-width:0}.print-payment-credit .print-payment-cell + .print-payment-cell{border-left:1px solid #c8cdd2}.print-payment-credit .print-abono{color:#08752f}.print-payment-credit .print-saldo{color:#a40000}
+.print-notes{height:auto;min-height:0.30in;margin-top:5px;border:1px solid #c8cdd2;padding:5px 6px;font-size:9pt;line-height:1.25;overflow:visible;white-space:normal;overflow-wrap:anywhere}.print-signatures{height:0.58in;min-height:0.58in;margin-top:8px;display:flex;justify-content:space-between;font-size:9pt;color:#333;gap:8px}.print-signatures span{flex:1;text-align:center;border-top:1px solid #555;padding-top:3px}
+}
+@media(max-width:700px){
+#app-root{padding:13px}
+.op-card{padding:13px}
+.op-table{font-size:12px}
+}
+
+/* ====== REDISEÑO VISUAL V3 · NAVY / AZUL VIVO / BLANCO · RESPONSIVE ====== */
+:root{--blue-950:#020b1d;--blue-900:#061633;--blue-850:#092044;--blue-800:#0b2d61;--blue-700:#0f55b8;--blue-600:#1677e8;--blue-500:#2d9cff;--cyan:#21c8ff;--white:#f7fbff;--ink:#eef6ff;--muted:#9db1cc;--line:#19345b;--surface:#091a35}
+html,body{background:radial-gradient(circle at 15% 0%,#10366f 0,#071a38 34%,#030b1c 100%);color:var(--ink)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+#app-root{max-width:1440px;min-height:100vh;margin:auto;padding:26px;background:transparent}
+.op-h{font-size:24px;color:#fff;letter-spacing:-.02em}.op-sub{color:#9db1cc}
+.op-tabs{border-bottom:1px solid #17345d;margin:22px 0 18px;gap:8px}
+.op-tab{color:#9eb2cf;border-radius:10px 10px 0 0;padding:12px 17px;transition:.2s}.op-tab:hover{background:#0d2a55;color:#fff}
+.op-tab.active{color:#fff;background:linear-gradient(135deg,#0d4fae,#1688f5);border-bottom-color:transparent;box-shadow:0 8px 22px rgba(22,119,232,.3)}
+.op-card,.op-metric{background:linear-gradient(145deg,#0d2347,#091b38);border:1px solid #173b68;border-radius:18px;padding:18px;box-shadow:0 10px 28px rgba(0,0,0,.28)}
+.op-card{transition:transform .2s,box-shadow .2s,border-color .2s}.op-card:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(0,0,0,.36);border-color:#2867ad}
+.op-field{color:#a9bdd6}.op-field input,.op-field select,.op-field textarea,#role-select,#search-input,#designer-filter,#status-filter,#dash-designer-filter{background:#061733;border:1px solid #23466f;color:#f2f7ff;border-radius:10px;box-shadow:inset 0 1px 3px rgba(0,0,0,.28)}
+.op-field input::placeholder,.op-field textarea::placeholder{color:#7289a8}.op-field input:focus,.op-field select:focus,.op-field textarea:focus,select:focus,input:focus{border-color:var(--blue-500);box-shadow:0 0 0 3px rgba(45,156,255,.18)}
+.op-btn-primary{background:linear-gradient(135deg,#0d5dcc,#22a0ff);color:#fff;box-shadow:0 8px 20px rgba(13,93,204,.3)}.op-btn-primary:hover{background:linear-gradient(135deg,#0b4da8,#1688f5);color:#fff}
+.op-btn-ghost{background:#0b2345;border-color:#2a4d77;color:#d9e8fa}.op-btn-ghost:hover{border-color:#2d9cff;color:#fff;background:#0e2c57}
+.op-link{color:#4eb2ff}.op-note{color:#8198b6}.image-upload{border-color:#2d5f95;background:#071a36}
+.op-table{color:#dbe9fa}.op-table th{color:#8fa7c4;border-bottom-color:#254668}.op-table td{border-bottom-color:#193a61}.op-table tr:hover td{background:#102d56}
+.metric-number{font-size:30px;color:#fff;line-height:1}.metric-label{color:#a9bdd6;font-weight:600}.metric-accent{font-size:10px;color:#52b4ff;margin-top:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.metric-icon{position:absolute;right:16px;top:13px;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#0d3b70;color:#59baff;font-weight:800}.op-metric{position:relative;overflow:hidden;min-height:108px}.op-metric:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#238fff,#1bd5ff)}
+.metric-hero{background:linear-gradient(145deg,#0d3c78,#09254c)}.metric-status{padding-bottom:14px}.metric-status .metric-number{font-size:26px}.metric-bar{height:5px;background:#183557;border-radius:999px;overflow:hidden;margin-top:12px}.metric-bar span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#1474e8,#25cfff);transition:width .35s ease}
+.dashboard-panel{position:relative}.panel-title{display:flex;align-items:center;gap:9px;color:#fff;font-size:15px}.panel-icon{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(135deg,#123e76,#0c659f);color:#71c7ff;font-weight:800}.chart-wrap{padding:8px 2px 0}.bar-chart{height:245px;gap:14px;padding:18px 8px 0;align-items:flex-end}.bar-group{height:220px;min-width:58px}.bar-stack{width:min(62px,70%);border-radius:10px 10px 3px 3px;box-shadow:0 8px 18px rgba(0,0,0,.28)}.bar{min-height:3px;transition:height .35s ease}.bar-label{color:#9fb4d0;font-weight:600}.legend-item{color:#b5c8df}.donut{width:190px;height:190px;box-shadow:0 12px 30px rgba(0,0,0,.3)}.donut:after{background:#0d2347}.donut-value{color:#fff}.detail-label{color:#8198b6}.detail-value{color:#edf5ff}
+/* Observaciones: al escribir se muestran en rojo y negrilla */
+.op-field textarea[data-field="notes"]:not(:placeholder-shown){color:#ff3b3b;font-weight:800;border-color:#d52b3b;background:#180f19;box-shadow:0 0 0 2px rgba(255,59,59,.12)}
+.op-field textarea[data-field="notes"]:focus:not(:placeholder-shown){border-color:#ff4b4b;box-shadow:0 0 0 3px rgba(255,59,59,.16)}\n/* Pegado directo de capturas / imágenes desde el portapapeles */\n.image-paste-zone{border:1px dashed #2d6da8;border-radius:10px;padding:10px;background:#061733;cursor:text;transition:.2s}\n.image-paste-zone:focus,.image-paste-zone:hover{border-color:#2d9cff;box-shadow:0 0 0 3px rgba(45,156,255,.12)}\n.image-paste-hint{font-size:11px;color:#8faed0;margin-top:4px}\n.reference-field input{color:#ff4fd8!important;font-weight:900!important;border:2px solid #ff4fd8!important;background:#26102b!important;text-shadow:0 0 8px rgba(255,79,216,.25)}
+.op-field textarea[data-field="notes"]{min-height:54px;resize:none;overflow-y:hidden;line-height:1.45}\n@media print{\n .print-table tr.print-red-row td{color:#d71920!important;font-weight:900!important}\n .print-table tr.print-red-row td:last-child{color:#d71920!important;font-weight:900!important}\n .print-reference{display:inline-block!important;color:#222!important;background:#ffe66d!important;font-size:5.5pt!important;font-weight:700!important;padding:0 2px!important;border-radius:2px!important;line-height:1!important;border:1px solid #d6b63a!important;vertical-align:middle!important}\n}\n
+/* Header / filters */
+.op-row select{max-width:100%}
+/* Mobile */
+@media(max-width:700px){
+ #app-root{padding:12px 10px}
+ .op-h{font-size:20px}.op-sub{font-size:12px}
+ .op-tabs{margin:14px 0;overflow-x:auto;scrollbar-width:none}
+ .op-tab{padding:10px 13px;font-size:12px}
+ .op-card,.op-metric{border-radius:14px;padding:14px}
+ .op-grid{gap:10px!important}
+ .bar-chart{height:210px;gap:7px;overflow-x:auto;justify-content:flex-start}
+ .bar-group{min-width:48px;height:185px}.bar-stack{width:42px}
+ .chart-wrap{overflow-x:auto}
+ .legend{gap:8px}
+ .op-table{min-width:650px;font-size:11px}
+ .op-table th,.op-table td{padding:8px 7px}
+ .detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .op-row{align-items:stretch}.op-row>#dash-designer-filter{width:100%}
+}
+@media(min-width:701px){
+ .dashboard-panel.chart-panel{padding-bottom:12px}
+}
+/* ====== IMPRESIÓN: mantener media carta horizontal ====== */
+@media print{
+ .print-table td:first-child{width:38%}
+ .print-table tr.print-important td{background:#dcecff!important;font-weight:800}.print-table tr.print-generated-row td{background:#eaf4ff!important;font-weight:900;color:#0b4fae!important}
+ .print-table tr.print-important td:last-child{color:#06152f;font-size:9px}
+ .print-notes.has-notes{border:2px solid #d52b3b!important;background:#fff3f4!important;color:#d51f2f!important;font-weight:800!important}
+ .print-notes.has-notes b{color:#b81727!important}
+}
+/* Correcciones finales de impresión: una sola página media carta horizontal */
+@media print{
+ #print-area{display:block!important;width:8.5in!important;height:5.5in!important;min-height:5.5in!important;max-height:5.5in!important;overflow:hidden!important;padding:.25in!important;box-sizing:border-box!important;page-break-after:avoid!important}
+ .print-sheet{width:8in!important;height:5in!important;min-height:5in!important;max-height:5in!important;overflow:hidden!important;page-break-inside:avoid!important;box-sizing:border-box!important;position:relative!important}
+ .print-fit{width:8in!important;transform-origin:top left!important;page-break-inside:avoid!important}
+ .print-body{height:3.38in!important;min-height:3.38in!important;max-height:3.38in!important;overflow:hidden!important;align-items:stretch!important}
+ .print-image-box{height:3.38in!important;min-height:3.38in!important;max-height:3.38in!important;overflow:hidden!important}.print-table{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important}
+ .print-images-grid{width:100%!important;height:100%!important;grid-template-columns:var(--print-image-cols,repeat(2,minmax(0,1fr)));grid-template-rows:var(--print-image-rows,repeat(3,minmax(0,1fr)));gap:4px!important;padding:4px!important;box-sizing:border-box!important}
+ .print-image-item{min-width:0!important;min-height:0!important;overflow:hidden!important}\n  .print-images-grid{align-items:stretch!important;justify-items:stretch!important}\n  .print-image-item img{object-fit:contain!important;max-width:100%!important;max-height:100%!important}
+ .print-image-item img{width:100%!important;height:100%!important;object-fit:contain!important;object-position:center!important}
+ .print-table tr.print-red-row td,.print-table tr.print-red-row td:first-child,.print-table tr.print-red-row td:last-child{color:#d71920!important;font-weight:900!important}
+ .print-table tr.print-red-row td{background:#fff0f1!important}
+ .print-notes{height:auto!important;min-height:.30in!important;max-height:none!important;overflow:visible!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:break-word!important;font-size:7pt!important;line-height:1.15!important;color:#111!important;padding:5px 6px!important}
+ .print-notes.has-notes{color:#d51f2f!important}
+ .print-notes.has-notes b{color:#b81727!important}
+ .print-signatures{height:.58in!important;min-height:.58in!important;max-height:none!important;overflow:visible!important;gap:14px!important}.print-signatures span{padding-top:5px!important;line-height:1.25!important}
+}
+
+
+/* ===== AJUSTES V24 · RENDIMIENTO DE DISEÑO ===== */
+.design-paid-row td{
+  opacity:.48!important;
+  text-decoration:line-through!important;
+  background:#0b1117!important;
+}
+.design-paid-row .design-paid-status{
+  text-decoration:none!important;
+  display:inline-block;
+  color:#7fe3a7!important;
+  font-weight:900!important;
+  background:#123522!important;
+  border:1px solid #2d9f68!important;
+  border-radius:999px;
+  padding:3px 7px;
+}
+.design-pay-btn{
+  border-color:#2d9f68!important;
+  color:#8df0b5!important;
+  background:#0b2419!important;
+}
+.design-pay-btn:hover{
+  background:#123d2a!important;
+  border-color:#4ee39a!important;
+}
+.design-pay-btn:disabled{
+  cursor:default!important;
+  opacity:.9!important;
+}
+.design-pending{
+  color:#ffcf66!important;
+  font-weight:800;
+}
+
+/* ===== CENTRO DE RENDIMIENTO · V20 VISUAL ===== */
+.dash-command-center{margin:0 -6px 28px;color:#eaf2f7}.dash-hero{display:flex;justify-content:space-between;gap:22px;align-items:stretch;padding:28px 30px;border-radius:22px;background:linear-gradient(135deg,#0c1721,#132936 58%,#10202a);border:1px solid #29404d;box-shadow:0 18px 45px rgba(0,0,0,.24);margin-bottom:14px}.dash-kicker,.dash-eyebrow{font-size:9px;letter-spacing:2px;color:#6ed8f5;font-weight:800}.dash-hero h1{margin:6px 0 5px;font-size:32px;line-height:1.05;letter-spacing:-.8px}.dash-hero p{margin:0;color:#93a8b5;font-size:12px}.dash-period-badge{min-width:220px;padding:14px 16px;border-radius:14px;background:#0b141c;border:1px solid #263c48;display:flex;flex-direction:column;justify-content:center;gap:4px}.dash-period-badge span{font-size:8px;color:#718795;letter-spacing:1.4px;font-weight:800}.dash-period-badge b{font-size:13px;color:#fff}.dash-period-badge small{font-size:10px;color:#6ed8f5}.dash-controlbar{display:flex;align-items:end;gap:10px;flex-wrap:wrap;padding:12px 14px;margin-bottom:14px;border:1px solid #263b47;border-radius:15px;background:#101c25}.dash-control{display:flex;flex-direction:column;gap:4px;min-width:120px}.dash-control label{font-size:8px;text-transform:uppercase;letter-spacing:1px;color:#728692;font-weight:800}.dash-control input,.dash-control select{height:34px;border:1px solid #344b58;border-radius:8px;background:#0b151d;color:#eaf2f7;padding:0 9px;font-size:11px}.dash-presets{display:flex;gap:5px;margin-left:auto}.dash-range{height:34px;padding:0 11px;border:1px solid #344b58;border-radius:8px;background:#152631;color:#b9cbd4;font-size:10px;font-weight:750;cursor:pointer}.dash-range:hover,.dash-range.active{background:#244250;color:#fff;border-color:#4f7c8e}.dash-kpis{display:grid;grid-template-columns:1.35fr repeat(3,1fr);gap:10px;margin-bottom:14px}.dash-kpi{min-height:105px;padding:17px 18px;border-radius:15px;background:#101c25;border:1px solid #273d49;position:relative;overflow:hidden}.dash-kpi span{display:block;color:#708592;font-size:8px;letter-spacing:1.25px;font-weight:800}.dash-kpi strong{display:block;color:#f4f8fa;font-size:29px;line-height:1.15;margin-top:10px}.dash-kpi small{color:#8ca1ad;font-size:10px}.dash-kpi em{position:absolute;right:17px;top:43px;color:#5bcbe8;font-style:normal;font-size:12px;font-weight:800}.dash-kpi.kpi-main{background:linear-gradient(135deg,#122733,#102029)}.kpi-line{height:3px;background:#213b48;border-radius:4px;margin-top:11px}.kpi-line i{display:block;height:100%;background:#58cce9;border-radius:4px}.dash-grid{display:grid;grid-template-columns:1.55fr 1fr;gap:12px;margin-bottom:12px}.dash-grid-top{grid-template-columns:1.6fr .9fr}.dash-panel{background:#101a22;border:1px solid #263b46;border-radius:17px;padding:17px;min-width:0}.dash-panel-wide{min-width:0}.dash-panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px}.dash-panel-head h3{font-size:15px;margin:3px 0 0;color:#f1f6f8}.dash-panel-head>b{font-size:10px;color:#78909d;font-weight:700;white-space:nowrap}.dash-trend{height:190px;display:flex;align-items:end;gap:7px;overflow-x:auto;padding:10px 2px 0}.dash-trend-col{min-width:34px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:end;height:100%;gap:4px}.dash-trend-value{font-size:9px;color:#b9cbd4;font-weight:800}.dash-trend-bar{width:100%;max-width:32px;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,#64d8f1,#277a94);min-height:5px}.dash-trend-label{font-size:8px;color:#718590;white-space:nowrap}.dash-donut{display:flex;justify-content:center;margin:5px 0 12px}.dash-donut-ring{width:122px;height:122px;border-radius:50%;display:grid;place-items:center;position:relative}.dash-donut-ring:after{content:"";position:absolute;inset:14px;border-radius:50%;background:#101a22}.dash-donut-ring>div{position:relative;z-index:1;font-size:25px;font-weight:800;color:#fff}.dash-donut-ring small{font-size:10px;color:#78909d}.dash-legend{display:grid;grid-template-columns:1fr 1fr;gap:7px}.dash-legend span{font-size:9px;color:#8da0aa;display:flex;align-items:center;gap:6px}.dash-legend i{width:7px;height:7px;border-radius:50%}.dash-legend b{margin-left:auto;color:#e8f0f3}.dash-rankbars{display:grid;gap:12px}.dash-rank-top{display:flex;justify-content:space-between;font-size:10px;color:#9fb0b8;margin-bottom:5px}.dash-rank-top b{display:inline-grid;place-items:center;width:19px;height:19px;border-radius:50%;background:#20333e;color:#6fd5ee;margin-right:6px;font-size:9px}.dash-rank-top strong{color:#fff}.dash-rank-track{height:8px;background:#1b2a33;border-radius:10px;overflow:hidden}.dash-rank-track i{display:block;height:100%;border-radius:10px;background:linear-gradient(90deg,#3a9fbd,#69d7ef)}.dash-status-table{display:grid;gap:11px}.dash-status-row>div:first-child{display:flex;justify-content:space-between;color:#d9e5e9;font-size:10px;margin-bottom:5px}.dash-status-row>div:first-child b{color:#78909d;font-size:9px}.dash-status-stack{height:9px;display:flex;border-radius:10px;overflow:hidden;background:#1a2932}.dash-status-stack i{display:block;height:100%}.dash-status-row small{display:block;text-align:right;color:#71cfe8;font-size:8px;margin-top:4px}.dash-machine-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px}.dash-machine{padding:11px;border:1px solid #213640;border-radius:11px;background:#0c161d}.dash-machine>span{display:block;color:#8fa2ac;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dash-machine>strong{display:block;color:#f5f8f9;font-size:19px;margin:5px 0}.dash-machine>div{height:4px;background:#1b2b34;border-radius:5px}.dash-machine i{display:block;height:100%;border-radius:5px;background:#55c9e7}.dash-resource{padding:14px 0;border-bottom:1px solid #20323b}.dash-resource:last-child{border-bottom:0}.dash-resource strong{display:block;color:#fff;font-size:24px}.dash-resource strong small{font-size:11px;color:#6f8792}.dash-resource span{font-size:9px;color:#7f949f}.dash-footer-panel{display:flex;align-items:center;gap:22px;margin-top:2px;padding:17px 20px;background:linear-gradient(90deg,#111f28,#101a22)}.dash-callouts{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;flex:1}.dash-callouts b{display:block;color:#6bd5ef;font-size:21px}.dash-callouts span{display:block;color:#7e949f;font-size:8px;line-height:1.3}.dash-empty{padding:28px;text-align:center;color:#6f848f;font-size:11px}.dash-command-center .dash-panel,.dash-command-center .dash-kpi{transition:transform .18s ease,border-color .18s ease}.dash-command-center .dash-panel:hover{border-color:#365462}
+/* Modo presentación: lectura cómoda a distancia */
+.dash-command-center{font-size:13px}.dash-hero h1{font-size:36px}.dash-hero p{font-size:14px}.dash-kicker,.dash-eyebrow{font-size:10px}.dash-panel-head h3{font-size:18px}.dash-panel-head>b{font-size:11px}.dash-control label{font-size:10px}.dash-control input,.dash-control select,.dash-range{height:40px;font-size:12px}.dash-kpi{min-height:125px;padding:20px}.dash-kpi span{font-size:10px}.dash-kpi strong{font-size:36px}.dash-kpi small{font-size:11px}.dash-trend{height:220px}.dash-trend-value{font-size:11px}.dash-trend-label{font-size:10px}.dash-legend span{font-size:11px}.dash-legend b{font-size:12px}.dash-rank-top{font-size:12px}.dash-rank-top strong{font-size:14px}.dash-rank-track{height:10px}.dash-status-row>div:first-child{font-size:12px}.dash-status-row>div:first-child b{font-size:11px}.dash-status-row small{font-size:10px}.dash-machine>span{font-size:10px}.dash-machine>strong{font-size:23px}.dash-resource strong{font-size:28px}.dash-resource span{font-size:10px}.dash-callouts b{font-size:25px}.dash-callouts span{font-size:10px}
+@media(max-width:850px){.dash-hero{flex-direction:column}.dash-period-badge{min-width:0}.dash-kpis{grid-template-columns:1fr 1fr}.dash-grid,.dash-grid-top{grid-template-columns:1fr}.dash-footer-panel{flex-direction:column;align-items:flex-start}.dash-callouts{width:100%;grid-template-columns:1fr 1fr}.dash-presets{margin-left:0}.dash-controlbar{align-items:stretch}}
+@media(max-width:520px){.dash-kpis{grid-template-columns:1fr}.dash-hero h1{font-size:25px}.dash-callouts{grid-template-columns:1fr 1fr}.dash-command-center{margin:0}}
+
+/* Corrección de layout Material/Laminado + referencias */
+.op-production-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+.op-reference-group{min-width:0!important;width:100%!important}
+.op-reference-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(105px,.85fr);gap:7px;align-items:stretch;width:100%}
+.op-reference-row select,.op-reference-row input{width:100%!important;min-width:0!important}
+@media(max-width:1050px){.op-production-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media(max-width:760px){.op-production-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.op-reference-row{grid-template-columns:1.1fr .9fr}}
+@media(max-width:500px){.op-production-grid{grid-template-columns:1fr!important}.op-reference-row{grid-template-columns:1.1fr .9fr}}
+
+/* Popup fijo para consulta/edición rápida de estado */
+.order-detail-modal{position:fixed!important;inset:0!important;z-index:9999!important;background:rgba(1,8,22,.78)!important;backdrop-filter:blur(7px);display:flex!important;align-items:center!important;justify-content:center!important;padding:22px!important;margin:0!important;border:0!important;border-radius:0!important}
+.order-detail-modal>.order-detail-card{width:min(920px,96vw);max-height:90vh;overflow:auto;background:linear-gradient(145deg,#0d2347,#07162f);border:1px solid #2d65a0;border-radius:18px;padding:20px;box-shadow:0 24px 70px rgba(0,0,0,.55)}
+.order-status-editor{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:12px;border:1px solid #244d7d;border-radius:12px;background:#071a36;margin-top:15px}
+.order-status-editor select{background:#061733;border:1px solid #2d65a0;color:#fff;border-radius:9px;padding:9px 11px;font-weight:700}
+.order-history-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:13px}
+.order-day-badge{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border-radius:999px;background:#0b376b;color:#8ed7ff;border:1px solid #2368a6;font-size:11px;font-weight:800}
+.order-pagination{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:15px;flex-wrap:wrap}
+.order-page-info{font-size:11px;color:#8fa7c4;padding:0 8px}
+.cleanup-panel{margin-top:14px;border:1px solid #624f1d;border-radius:14px;padding:14px;background:linear-gradient(145deg,#241d0c,#17150d)}
+.cleanup-panel h3{margin:0;color:#ffe59a;font-size:14px}.cleanup-panel p{margin:5px 0 11px;color:#b8aa7b;font-size:11px}
+.cleanup-actions{display:flex;gap:8px;flex-wrap:wrap}.cleanup-actions button{border-color:#795f20!important;color:#ffe39a!important;background:#2a210d!important}.cleanup-actions button:hover{border-color:#ffcb4f!important;background:#3a2c0f!important}
+
+/* Centro de rendimiento de diseño */
+.design-dashboard{display:grid;gap:14px}
+.design-hero{padding:20px;border-radius:18px;background:linear-gradient(135deg,#0a2d61,#0c4e91 55%,#0a2146);border:1px solid #2868a9;box-shadow:0 14px 35px rgba(0,0,0,.28)}
+.design-hero-top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}.design-hero h2{margin:0;color:#fff;font-size:24px}.design-hero p{margin:5px 0 0;color:#a8caeb;font-size:11px}
+.design-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:15px}.design-kpi{padding:14px;border-radius:13px;background:rgba(3,18,43,.52);border:1px solid rgba(112,190,255,.18)}.design-kpi span{display:block;color:#8fb6da;font-size:8px;letter-spacing:1.1px;font-weight:800}.design-kpi strong{display:block;color:#fff;font-size:23px;margin-top:6px}.design-kpi small{color:#80d8ff;font-size:9px}
+.design-grid{display:grid;grid-template-columns:1.35fr .95fr;gap:12px}.design-panel{background:linear-gradient(145deg,#0c2346,#081a37);border:1px solid #1c4678;border-radius:16px;padding:16px;min-width:0}.design-panel h3{margin:0 0 3px;color:#fff;font-size:14px}.design-panel-sub{font-size:9px;color:#7898b9;margin-bottom:13px}.design-bars{display:grid;gap:12px}.design-bar-row{display:grid;grid-template-columns:120px 1fr 80px;gap:9px;align-items:center}.design-bar-name{font-size:10px;color:#d9e8f7;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.design-bar-track{height:12px;border-radius:999px;background:#102c50;overflow:hidden}.design-bar-fill{height:100%;border-radius:999px;box-shadow:0 0 14px rgba(33,200,255,.22);transition:width .45s ease}.design-bar-value{text-align:right;color:#fff;font-size:10px;font-weight:800}.design-donut-wrap{display:grid;place-items:center;min-height:230px}.design-donut{width:170px;height:170px;border-radius:50%;display:grid;place-items:center;position:relative;box-shadow:0 14px 35px rgba(0,0,0,.35)}.design-donut:after{content:"";position:absolute;inset:26px;border-radius:50%;background:#0b1f40;border:1px solid #173b66}.design-donut-center{position:relative;z-index:2;text-align:center}.design-donut-center b{display:block;color:#fff;font-size:22px}.design-donut-center span{font-size:8px;color:#7fa5c7;text-transform:uppercase;letter-spacing:1px}.design-legend{display:grid;gap:7px;margin-top:10px}.design-legend-row{display:flex;align-items:center;gap:7px;font-size:9px;color:#9db7d3}.design-legend-row i{width:8px;height:8px;border-radius:50%;flex:none}.design-legend-row b{margin-left:auto;color:#fff}.design-trend{height:180px;display:flex;align-items:flex-end;gap:8px;overflow-x:auto;padding:10px 3px 0}.design-trend-col{min-width:34px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px}.design-trend-value{font-size:8px;color:#b9d4ed;font-weight:800}.design-trend-bar{width:100%;max-width:30px;min-height:4px;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,#21c8ff,#1460d2);box-shadow:0 5px 15px rgba(33,200,255,.18)}.design-trend-label{font-size:7px;color:#7898b9;white-space:nowrap}.design-empty{padding:35px 10px;text-align:center;color:#6f8eae;font-size:11px}
+@media(max-width:900px){.design-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.design-grid{grid-template-columns:1fr}}
+@media(max-width:560px){.design-kpis{grid-template-columns:1fr 1fr}.design-bar-row{grid-template-columns:85px 1fr 66px}.design-bar-name{font-size:9px}}
+/* V26 · Liquidación limpia y ranking de diseño */
+.design-pay-btn{border-color:#2d9f68!important;color:#8df0b5!important;background:#0b2419!important;font-weight:900}
+.design-pay-btn:hover{background:#123d2a!important;border-color:#4ee39a!important}
+.design-dashboard .design-bar-row{grid-template-columns:145px 1fr 105px}
+.design-dashboard .design-bar-value{white-space:nowrap}
+@media(max-width:700px){.design-dashboard .design-bar-row{grid-template-columns:95px 1fr 85px}}
+
+/* Referencias: selector y campo juntos, máximo 20 caracteres y resaltado */
+.op-reference-group{min-width:280px}
+.op-reference-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(120px,.85fr);gap:7px;align-items:stretch}
+.op-reference-row select,.op-reference-row input{width:100%;min-width:0}
+.op-reference-input{border:2px solid #ffb300!important;background:#2a1d00!important;color:#ffd54f!important;font-weight:900!important;letter-spacing:.04em!important;text-transform:uppercase;box-shadow:0 0 0 2px rgba(255,179,0,.12),0 0 14px rgba(255,179,0,.08)!important}
+.print-reference{font-size:5.5pt!important;font-weight:700!important;padding:0 2px!important}
+.op-reference-input::placeholder{color:#d6aa3b!important;font-weight:700!important;text-transform:none;letter-spacing:0}
+.op-reference-input:focus{border-color:#00e5ff!important;color:#ffffff!important;background:#082b36!important;box-shadow:0 0 0 3px rgba(0,229,255,.2)!important}
+@media(max-width:700px){.op-reference-group{min-width:100%}.op-reference-row{grid-template-columns:1fr 1fr}}
+</style>
+<style>@media(max-width:1100px){.design-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:700px){.design-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}@media print{.print-reference{display:inline-block!important;color:#222!important;background:#ffe66d!important;font-size:5.5pt!important;font-weight:700!important;padding:0 2px!important;border-radius:2px!important;line-height:1!important;border:1px solid #d6b63a!important;vertical-align:middle!important}}
+/* AJUSTE FINAL · REFERENCIAS: +1.5px de fuente y espacio proporcional */
+<style>
+.op-reference-input{
+  font-size:15px!important;
+  padding:10px 11px!important;
+}
+.op-reference-row{
+  grid-template-columns:minmax(0,1.15fr) minmax(130px,.9fr)!important;
+}
+@media(max-width:700px){
+  .op-reference-row{
+    grid-template-columns:1fr 1fr!important;
+  }
+}
+</style>
+</style></head>
+
+<body>
+<div id="app-root"><p style="color:#8b96a3">Cargando dashboard...</p></div>
+<div id="print-area"></div>
+
+<script>
+(function(){
+"use strict";
+
+const firebaseConfig={
+  apiKey:"AIzaSyDuLIzneQfBuBSdzi5C3wCIas08gquqYNY",
+  authDomain:"dashboard-produccion-a6c02.firebaseapp.com",
+  projectId:"dashboard-produccion-a6c02",
+  storageBucket:"dashboard-produccion-a6c02.firebasestorage.app",
+  messagingSenderId:"1055475971996",
+  appId:"1:1055475971996:web:4d3e148262ef5c3e46fa59"
+};
+
+let DESIGNERS=["CARLOS","SEBASTIAN","MICHAEL","MANUEL"];
+let DESIGNER_PINS={CARLOS:"4821",SEBASTIAN:"7354",MICHAEL:"6192",MANUEL:"8647"};
+let designersLoadedFromCloud=false;
+const ADMIN_PIN="1234";
+const VIEWER_PIN="2468";
+const READONLY_VIEWER_PIN="1357";
+const MACHINES=["FORTUNE 1H","i3200 1H","i3200 320 4 H","i3200 320 2 H","LAMIN","PLOTTER CORTE","UV ROLL","UV RIG","DTF UV","LASER CANON"];
+const MATERIALS=["BB","BM","B D. CARA","B REV N.","PANAFLEX","VBB","VBM","VTM","VTB","PET AB UV","V CORTE","FROSTED","LAFSOL","MICRO.","PAPEL","TINTA","ACRILICO","MADERA","POLIESTILENO","OTRO"];
+const FINISHES=["REFILADO","BOLSILLOS","TUBOS","OJALETES","CORTE GUIAS","ESPACIOS","SOLO CORTE","SOLO PASADA LAMINADORA","CORTE LASER","OTRO"];
+const LAMINATES=["VBB","VTM","VTB","OTRO"];
+const STATUS=["Pendiente","En produccion","Terminada","Entregada","Garantia"];
+const root=document.getElementById("app-root");
+
+let db=null;
+let state={
+  orders:[],counters:{},designLogs:[],designStats:[],designPayments:[],ordersReady:false,countersReady:false,
+  role:null,isAdmin:false,isViewer:false,isReadOnlyConsultation:false,pendingReadOnly:false,tab:"new",editingId:null,detailId:null,
+  showAdminPin:false,showViewerPin:false,pendingDesigner:null,showDesignerPin:false,pendingViewer:false,
+  designerPinError:"",adminPinError:"",viewerPinError:"",search:"",filterDesigner:"TODOS",
+  filterStatus:"TODOS",dashDesignerFilter:"TODOS",dashMachineFilter:"TODOS",dashGuaranteeFilter:"TODOS",dashStartDate:"",dashEndDate:"",designStart:"",designEnd:"",confirmResetFor:null,confirmResetDesignFor:null,orderHistoryPage:1,ordersPerPage:10,cleanupConfirmDays:null,
+  printPreviewId:null,form:null
+};
+let firestoreError=null;
+
+function todayStr(){return new Date().toISOString().slice(0,10)}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
+function n(v){const x=Number(v);return Number.isFinite(x)?x:0}
+function fmtNum(v,d){return Number(v||0).toLocaleString("es-CO",{maximumFractionDigits:d==null?2:d})}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function blankForm(){
+ return {designer:"",client:"",clientPhone:"",job:"",date:todayStr(),deliveryDate:"",deliveryTime:"",
+ machine:"",material:"",materialReference:"",finish:"",laminate:"",laminateReference:"",status:"Pendiente",
+ width:"",height:"",materialWidth:"",materialLength:"",quantity:"1",
+ eyelets:"",notes:"",paymentMethod:"",abono:"",saldo:"",imageData:[],imageName:"",imageNames:[],materialReference:"",laminateReference:""};
+}
+state.form=blankForm();
+
+const CLIENT_SUGGESTIONS_KEY="op-client-suggestions";
+function getClientSuggestions(){
+ try{
+  const raw=JSON.parse(localStorage.getItem(CLIENT_SUGGESTIONS_KEY)||"[]");
+  const counts={};
+  if(Array.isArray(raw)){
+   raw.forEach(v=>{
+    if(typeof v==="string"&&v.trim()){
+     const name=v.trim(),key=name.toLowerCase();
+     if(!counts[key])counts[key]={name,count:1,last:0};
+     else counts[key].count++;
+    }else if(v&&typeof v==="object"&&typeof v.name==="string"&&v.name.trim()){
+     const name=v.name.trim(),key=name.toLowerCase();
+     counts[key]={name,count:Math.max(1,n(v.count)),last:n(v.last)};
+    }
+   });
+  }
+  (state.orders||[]).forEach(o=>{
+   const name=String(o.client||"").trim();
+   if(!name)return;
+   const key=name.toLowerCase();
+   if(!counts[key])counts[key]={name,count:0,last:0};
+   counts[key].count++;
+  });
+  return Object.values(counts)
+   .sort((a,b)=>(b.count-a.count)||(b.last-a.last)||a.name.localeCompare(b.name,"es"))
+   .slice(0,100)
+   .map(x=>x.name);
+ }catch(e){return []}
+}
+function saveClientSuggestion(value){
+ const name=String(value||"").trim();
+ if(name.length<2)return;
+ try{
+  const raw=JSON.parse(localStorage.getItem(CLIENT_SUGGESTIONS_KEY)||"[]");
+  const items=Array.isArray(raw)?raw:[];
+  const now=Date.now(),key=name.toLowerCase();
+  const idx=items.findIndex(v=>
+   (typeof v==="string"&&v.trim().toLowerCase()===key) ||
+   (v&&typeof v==="object"&&String(v.name||"").trim().toLowerCase()===key)
+  );
+  if(idx>=0){
+   const old=items[idx];
+   items[idx]={
+    name,
+    count:Math.max(0,typeof old==="object"?n(old.count):1)+1,
+    last:now
+   };
+  }else{
+   items.push({name,count:1,last:now});
+  }
+  items.sort((a,b)=>n(b.count)-n(a.count)||n(b.last)-n(a.last));
+  localStorage.setItem(CLIENT_SUGGESTIONS_KEY,JSON.stringify(items.slice(0,100)));
+ }catch(e){}
+}
+
+function paymentNeedsAmounts(method){return method==="Credito"||method==="Vendty"}
+
+function syncMaterialLength(){
+ const h=n(state.form.height);
+ state.form.materialLength=h>0?(h+0.30).toFixed(2):"";
+}
+
+function computeConsumables(f){
+ const isTube=(f.finish||"").trim().toUpperCase()==="TUBOS";
+ const q=n(f.quantity), w=n(f.width);
+ return {isTube,tubes:isTube?w*q*2:0,cord:isTube?w*q*2:0,plugs:isTube?q*4:0};
+}
+
+function imageArray(value){
+ if(Array.isArray(value))return value.filter(Boolean);
+ return value?[value]:[];
+}
+function imageNamesArray(o){
+ if(Array.isArray(o&&o.imageNames))return o.imageNames;
+ if(Array.isArray(o&&o.imageName))return o.imageName;
+ return o&&o.imageName?[o.imageName]:[];
+}
+function designerOpClass(designer){
+ const d=(designer||"").trim().toUpperCase();
+ return d==="CARLOS"?"op-carlos":d==="SEBASTIAN"?"op-sebastian":d==="MICHAEL"?"op-michael":d==="MANUEL"?"op-manuel":"";
+}
+function formatGeneratedDate(ts){
+ return ts?new Date(ts).toLocaleString("es-CO",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",hour12:true}):"-";
+}
+
+function readAndCompressImage(file){
+ return new Promise((resolve,reject)=>{
+  if(!file){resolve(null);return}
+  if(!file.type||!file.type.startsWith("image/")){reject(new Error("Selecciona un archivo de imagen."));return}
+  const reader=new FileReader();reader.onerror=()=>reject(new Error("No se pudo leer la imagen."));
+  reader.onload=()=>{const img=new Image();img.onerror=()=>reject(new Error("La imagen no es válida."));img.onload=()=>{
+   const maxSide=1100,scale=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight));
+   const w=Math.max(1,Math.round(img.naturalWidth*scale)),hh=Math.max(1,Math.round(img.naturalHeight*scale));
+   const canvas=document.createElement("canvas");canvas.width=w;canvas.height=hh;const ctx=canvas.getContext("2d");ctx.drawImage(img,0,0,w,hh);
+   let quality=.76,data=canvas.toDataURL("image/jpeg",quality);while(data.length>180000&&quality>.35){quality-=.06;data=canvas.toDataURL("image/jpeg",quality)}
+   if(data.length>260000){reject(new Error("La imagen sigue siendo demasiado grande. Usa una imagen más pequeña."));return}
+   resolve({data,name:file.name});
+  };img.src=reader.result};reader.readAsDataURL(file);
+ });
+}
+
+function saveSession(){
+ try{
+  localStorage.setItem("op-last-session",JSON.stringify({
+   role:DESIGNERS.includes(state.role)?state.role:null,isAdmin:!!state.isAdmin,isViewer:!!state.isViewer,isReadOnlyConsultation:!!state.isReadOnlyConsultation
+  }));
+ }catch(e){}
+}
+function loadSession(){
+ // No automatic administrator login. Designer sessions may persist.
+ try{
+  const raw=localStorage.getItem("op-last-session");
+  if(!raw)return;
+  const p=JSON.parse(raw);
+  if(DESIGNERS.includes(p.role)){state.role=p.role;state.isAdmin=false;state.isViewer=false}
+  if(p.isViewer){state.role="CONSULT-ART";state.isAdmin=false;state.isViewer=true;state.tab="orders"}
+  if(p.isReadOnlyConsultation){state.role="CONSULT-ART SOLO LECTURA";state.isAdmin=false;state.isViewer=false;state.isReadOnlyConsultation=true;state.tab="orders"}
+ }catch(e){}
+}
+
+function initFirebase(){
+ try{
+  if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
+  db=firebase.firestore();
+
+  db.collection("designers").onSnapshot(async snap=>{
+    try{
+     if(snap.empty && !designersLoadedFromCloud){
+      const batch=db.batch();
+      Object.keys(DESIGNER_PINS).forEach(name=>batch.set(db.collection("designers").doc(name),{name,pin:DESIGNER_PINS[name],active:true}));
+      await batch.commit(); designersLoadedFromCloud=true; return;
+     }
+     const active=snap.docs.map(d=>({id:d.id,...d.data()})).filter(d=>d.active!==false);
+     DESIGNERS=active.map(d=>String(d.name||d.id).trim().toUpperCase()).filter(Boolean);
+     DESIGNER_PINS={}; active.forEach(d=>{DESIGNER_PINS[String(d.name||d.id).trim().toUpperCase()]=String(d.pin||"")});
+     designersLoadedFromCloud=true; render();
+    }catch(e){console.warn("No se pudieron sincronizar diseñadores",e)}
+   },err=>console.warn("No se pudieron cargar diseñadores",err));
+
+   db.collection("orders").onSnapshot(snap=>{
+   state.orders=snap.docs.map(d=>({...d.data(),id:d.id}));
+   state.ordersReady=true;firestoreError=null;render();
+  },err=>{firestoreError=err.message;state.ordersReady=true;render()});
+
+  db.collection("designLogs").onSnapshot(snap=>{state.designLogs=snap.docs.map(d=>({...d.data(),id:d.id}));render();},err=>{console.warn("No se pudieron cargar los registros de diseño",err)});
+  // Historial compacto: conserva solo cifras agregadas de diseños ya liquidados.
+  db.collection("designStats").onSnapshot(snap=>{state.designStats=snap.docs.map(d=>({...d.data(),id:d.id}));render();},err=>{console.warn("No se pudieron cargar las estadísticas consolidadas de diseño",err)});
+   db.collection("designPayments").onSnapshot(snap=>{state.designPayments=snap.docs.map(d=>({...d.data(),id:d.id}));render();},err=>{console.warn("No se pudo cargar historial de pagos",err)});
+   purgeMonthlyDesignPayments();
+
+   db.collection("counters").onSnapshot(snap=>{
+   const c={};snap.forEach(d=>c[d.id]=(d.data()||{}).lastNumber||0);
+   state.counters=c;state.countersReady=true;render();
+  },err=>{firestoreError=err.message;state.countersReady=true;render()});
+ }catch(e){
+  firestoreError=e.message;state.ordersReady=true;state.countersReady=true;render();
+ }
+}
+
+function nextOp(designer){return (state.counters[designer.trim().toUpperCase()]||0)+1}
+function opLabel(designer,num){return "OP-"+designer.trim().toUpperCase()+"-"+String(num).padStart(4,"0")}
+
+function setState(patch){Object.assign(state,patch);render()}
+
+function paymentFields(){
+ if(!paymentNeedsAmounts(state.form.paymentMethod))return "";
+ return `
+ <label class="op-field"><span>Valor abono</span>
+   <input type="number" min="0" step="1" data-field="abono" value="${esc(state.form.abono)}" placeholder="$">
+ </label>
+ <label class="op-field"><span>Saldo</span>
+   <input type="number" min="0" step="1" data-field="saldo" value="${esc(state.form.saldo)}" placeholder="$">
+ </label>`;
+}
+
+function optionsHtml(list,current){
+ return '<option value="">Seleccionar</option>'+list.map(v=>`<option value="${esc(v)}" ${v===current?"selected":""}>${esc(v)}</option>`).join("");
+}
+
+function header(){
+ const label=state.isAdmin?"Administrador":(state.role||"Sin sesion");
+ return `
+ <div class="op-row" style="justify-content:space-between;align-items:flex-start">
+  <div><p class="op-h">CONSULT-ART · Producción</p><p class="op-sub">Sesión actual: ${esc(label)}</p></div>
+  <div class="op-row">
+   <select id="role-select" style="min-width:190px">
+    <option value="" ${!state.role&&!state.isAdmin?"selected":""} disabled>Elegir perfil</option>
+    ${DESIGNERS.map(d=>`<option value="${d}" ${state.role===d&&!state.isAdmin&&!state.isViewer?"selected":""}>${d}</option>`).join("")}
+    <option value="__ADMIN__" ${state.isAdmin?"selected":""}>Administrador</option>
+    <option value="__VIEWER__" ${state.isViewer?"selected":""}>CONSULT-ART (consulta y gestión de diseños)</option>
+     <option value="__READONLY__" ${state.isReadOnlyConsultation?"selected":""}>CONSULT-ART (solo lectura)</option>
+   </select>
+   ${(state.role||state.isAdmin||state.isViewer)?'<button id="logout-btn" class="op-btn op-btn-ghost op-btn-sm">Cerrar sesión</button>':""}
+  </div>
+ </div>`;
+}
+
+function pinBox(){
+ return `
+ <div class="op-modal-bg" style="max-width:380px;margin:25px auto">
+  <b style="color:#ffffff">Acceso administrador</b>
+  <p class="op-note">Ingresa el PIN para desbloquear el panel completo.</p>
+  <div class="op-row" style="margin-top:12px">
+   <input id="admin-pin-input" type="password" inputmode="numeric" maxlength="12" placeholder="PIN" style="flex:1">
+   <button id="admin-pin-submit" class="op-btn op-btn-primary">Entrar</button>
+  </div>
+  <p id="admin-pin-error" style="color:#f6602c;font-size:12px;min-height:15px">${esc(state.adminPinError)}</p>
+  <button id="admin-pin-cancel" class="op-link">Cancelar</button>
+ </div>`;
+}
+
+function designerPinBox(){
+ return `
+ <div class="op-modal-bg" style="max-width:400px;margin:25px auto">
+  <b style="color:#ffffff">Acceso diseñador: ${esc(state.pendingDesigner)}</b>
+  <p class="op-note">Ingresa el PIN asignado a este diseñador.</p>
+  <div class="op-row" style="margin-top:12px">
+   <input id="designer-pin-input" type="password" inputmode="numeric" maxlength="12" placeholder="PIN" style="flex:1">
+   <button id="designer-pin-submit" class="op-btn op-btn-primary">Entrar</button>
+  </div>
+  <p id="designer-pin-error" style="color:#f6602c;font-size:12px;min-height:15px">${esc(state.designerPinError)}</p>
+  <button id="designer-pin-cancel" class="op-link">Cancelar</button>
+ </div>`;
+}
+
+function viewerPinBox(){
+ return `
+ <div class="op-modal-bg" style="max-width:400px;margin:25px auto">
+  <b style="color:#ffffff">Acceso CONSULT-ART</b>
+  <p class="op-note">Ingresa el PIN de CONSULT-ART para consultar órdenes y revisar diseños. Varias personas pueden usarlo simultáneamente.</p>
+  <div class="op-row" style="margin-top:12px">
+   <input id="viewer-pin-input" type="password" inputmode="numeric" maxlength="12" placeholder="PIN" style="flex:1">
+   <button id="viewer-pin-submit" class="op-btn op-btn-primary">Entrar</button>
+  </div>
+  <p id="viewer-pin-error" style="color:#f6602c;font-size:12px;min-height:15px">${esc(state.viewerPinError||"")}</p>
+  <button id="viewer-pin-cancel" class="op-link">Cancelar</button>
+ </div>`;
+}
+
+function tabsBar(){
+ const tabs=state.isReadOnlyConsultation?[["orders","Consulta únicamente"]]:state.isViewer?[["orders","Consulta de OP"],["designs","Rendimiento de diseño"]]:[["new","Nueva orden"],["orders","Órdenes"]];
+ if(state.isAdmin){tabs.splice(1,0,["dashboard","Panel"]);tabs.push(["designs","Rendimiento de diseño"],["admin","Consecutivos"],["designers","Diseñadores"])}
+  else if(!state.isViewer)tabs.push(["designs","Mis diseños"]);
+ return `<div class="op-tabs">${tabs.map(([k,l])=>`<button class="op-tab ${state.tab===k?"active":""}" data-tab="${k}">${l}</button>`).join("")}</div>`;
+}
+
+function newOrderTab(){
+ const f=state.form,cons=computeConsumables(f),imgs=imageArray(f.imageData);
+ const designerField=state.isAdmin
+  ? `<label class="op-field"><span>Diseñador</span><select data-field="designer">${optionsHtml(DESIGNERS,f.designer)}</select></label>`
+  : `<label class="op-field"><span>Diseñador</span><input value="${esc(state.role||"")}" disabled></label>`;
+ return `
+ <div class="op-card">
+  <p style="font-weight:700;margin:0 0 14px;color:#ffffff">${state.editingId?"Editar orden":"Registrar orden de producción"}</p>
+  <form id="order-form">
+   <div class="op-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:12px">
+    ${designerField}
+    <label class="op-field"><span>Cliente</span><input required list="client-suggestions" data-field="client" value="${esc(f.client)}" placeholder="Nombre del cliente"><datalist id="client-suggestions">${getClientSuggestions().map(c=>`<option value="${esc(c)}"></option>`).join("")}</datalist></label>
+    <label class="op-field"><span>Teléfono del cliente</span><input data-field="clientPhone" value="${esc(f.clientPhone)}" placeholder="Teléfono / celular"></label>
+    <label class="op-field"><span>Archivo</span><input data-field="job" value="${esc(f.job)}" placeholder="Nombre del archivo"></label>
+    <label class="op-field"><span>Fecha</span><input type="date" data-field="date" value="${esc(f.date)}"></label>
+    <label class="op-field"><span>Fecha entrega</span><input type="date" data-field="deliveryDate" value="${esc(f.deliveryDate)}"></label>
+    <label class="op-field"><span>Hora entrega</span><input type="time" data-field="deliveryTime" value="${esc(f.deliveryTime)}"></label>
+   </div>
+
+   <div class="op-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:12px">
+    <label class="op-field"><span>Medida archivo · Ancho (m)</span><input type="number" step="0.01" min="0" data-field="width" value="${esc(f.width)}"></label>
+    <label class="op-field"><span>Medida archivo · Alto (m)</span><input type="number" step="0.01" min="0" data-field="height" value="${esc(f.height)}"></label>
+    <label class="op-field"><span>Medida material · Ancho (m)</span><input type="number" step="0.01" min="0" data-field="materialWidth" value="${esc(f.materialWidth)}"></label>
+    <label class="op-field"><span>Medida material · Largo (m)</span><input type="number" step="0.01" min="0" data-field="materialLength" value="${esc(f.materialLength)}"></label>
+    <label class="op-field"><span>Cantidad</span><input type="number" min="1" step="1" data-field="quantity" value="${esc(f.quantity)}"></label>
+    <label class="op-field"><span>Área total (m²)</span><input value="${fmtNum(n(f.width)*n(f.height)*n(f.quantity))}" disabled></label>
+   </div>
+
+   <div class="op-grid op-production-grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:12px">
+    <label class="op-field"><span>Máquina</span><select data-field="machine">${optionsHtml(MACHINES,f.machine)}</select></label>
+    <div class="op-field op-reference-group"><span>Material</span><div class="op-reference-row"><select data-field="material">${optionsHtml(MATERIALS,f.material)}</select><input class="op-reference-input" data-field="materialReference" maxlength="20" value="${esc(f.materialReference)}" placeholder="Referencia"></div></div>
+    <div class="op-field op-reference-group"><span>Laminado</span><div class="op-reference-row"><select data-field="laminate">${optionsHtml(LAMINATES,f.laminate)}</select><input class="op-reference-input" data-field="laminateReference" maxlength="20" value="${esc(f.laminateReference)}" placeholder="Referencia"></div></div>
+    <label class="op-field"><span>Acabado</span><select data-field="finish">${optionsHtml(FINISHES,f.finish)}</select></label>
+    <label class="op-field"><span>Tubos (m)</span><input value="${cons.isTube?fmtNum(cons.tubes):"0"}" disabled></label>
+    <label class="op-field"><span>Cordón (m)</span><input value="${cons.isTube?fmtNum(cons.cord):"0"}" disabled></label>
+    <label class="op-field"><span>Tapones (unid.)</span><input value="${cons.isTube?cons.plugs:"0"}" disabled></label>
+    <label class="op-field"><span>Ojaletes (unid.)</span><input type="number" min="0" step="1" data-field="eyelets" value="${esc(f.eyelets)}"></label>
+    <label class="op-field"><span>Estado</span><select data-field="status">${STATUS.map(s=>`<option value="${esc(s)}" ${f.status===s?"selected":""}>${s}</option>`).join("")}</select></label>
+   </div>
+
+   <div class="op-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:12px">
+    <label class="op-field"><span>Forma de pago</span>
+     <select data-field="paymentMethod">
+      <option value="" ${!f.paymentMethod?"selected":""}>Seleccionar</option>
+      <option value="Credito" ${f.paymentMethod==="Credito"?"selected":""}>Crédito</option>
+      <option value="Pago Contra entrega" ${f.paymentMethod==="Pago Contra entrega"?"selected":""}>Pago Contra entrega</option>
+      <option value="Vendty" ${f.paymentMethod==="Vendty"?"selected":""}>Vendty</option>
+     </select>
+    </label>
+    ${paymentFields()}
+   </div>
+
+   <div class="image-upload" style="margin-bottom:16px">
+    <div id="image-paste-zone" class="image-paste-zone" tabindex="0">
+     <div style="font-size:12px;color:#cbd5db;font-weight:650">Imágenes / capturas de pantalla</div>
+     <div class="image-paste-hint">Puedes seleccionar varias imágenes con el botón o hacer <b>Ctrl + V</b> aquí para pegar capturas directamente. Se permiten hasta 5 imágenes por OP.</div>
+     <div class="op-row" style="margin-top:8px"><input id="order-image" type="file" accept="image/*" multiple style="max-width:100%">
+      ${imgs.length?'<span class="op-note">Para eliminar una imagen, usa el botón Quitar debajo de cada vista previa.</span>':""}
+     </div>
+    </div>
+    <p class="op-note">Las imágenes pegadas o adjuntas se comprimen automáticamente y aparecerán en el PDF.</p>
+    ${imgs.length?`<div class="image-upload-preview">${imgs.map((im,i)=>`<div class="image-preview-item" style="display:flex;flex-direction:column;gap:5px;align-items:center"><img src="${esc(im)}" alt="Referencia ${i+1}"><span>${esc((f.imageNames&&f.imageNames[i])||"Imagen "+(i+1))}</span><button type="button" class="op-btn op-btn-danger op-btn-sm remove-single-image" data-image-index="${i}" aria-label="Quitar imagen ${i+1}">Quitar</button></div>`).join("")}</div>`:""}
+   </div>
+   <label class="op-field" style="margin-bottom:16px"><span>Notas</span><textarea data-field="notes" rows="2" placeholder="Observaciones de producción">${esc(f.notes)}</textarea></label>
+   <div class="op-row">
+    <button class="op-btn op-btn-primary" type="submit">${state.editingId?"Guardar cambios":"Guardar orden"}</button>
+    ${state.editingId?'<button id="cancel-edit" type="button" class="op-btn op-btn-ghost">Cancelar edición</button>':""}
+   </div>
+  </form>
+ </div>`;
+}
+
+function visibleOrders(){
+ let rows=state.orders.slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+ // CONSULT-ART de solo lectura debe consultar el historial global, igual que el perfil de consulta.
+ if(!state.isAdmin&&!state.isViewer&&!state.isReadOnlyConsultation)rows=rows.filter(o=>o.designer===state.role);
+ else if((state.isAdmin||state.isViewer)&&state.filterDesigner!=="TODOS")rows=rows.filter(o=>o.designer===state.filterDesigner);
+ if(state.filterStatus!=="TODOS")rows=rows.filter(o=>o.status===state.filterStatus);
+ const q=state.search.trim().toLowerCase();
+ if(q)rows=rows.filter(o=>(o.client||"").toLowerCase().includes(q)||(o.job||"").toLowerCase().includes(q)||(o.opCode||"").toLowerCase().includes(q));
+ return rows;
+}
+
+function statusClass(s){
+ return s==="Pendiente"?"op-badge-pend":s==="En produccion"?"op-badge-prod":s==="Terminada"?"op-badge-term":s==="Garantia"?"op-badge-gar":"op-badge-entr";
+}
+
+function detailPanel(){
+ const o=state.orders.find(x=>x.id===state.detailId);if(!o)return "";
+ const area=n(o.width)*n(o.height)*n(o.quantity);
+ return `
+ <div class="op-modal-bg order-detail-modal" role="dialog" aria-modal="true">
+  <div class="order-detail-card">
+   <div class="op-row" style="justify-content:space-between;align-items:center">
+    <div><b style="color:#ffffff;font-size:17px">${esc(o.opCode)}</b><div style="font-size:10px;color:#7898b9;margin-top:3px">Detalle de orden</div></div>
+    <div class="op-row"><button class="op-btn op-btn-ghost op-btn-sm" data-pdf="${o.id}">Exportar PDF</button>${!state.isViewer?`<button class="op-btn op-btn-primary op-btn-sm" data-edit="${o.id}">Editar orden</button>`:""}<button id="close-detail" class="op-btn op-btn-ghost op-btn-sm">Cerrar</button></div>
+   </div>
+   <div class="detail-grid">
+    ${detail("Diseñador",o.designer)}${detail("Cliente",o.client)}${detail("Teléfono",o.clientPhone||"-")}
+    ${detail("Archivo",o.job||"-")}${detail("Fecha",o.date||"-")}${detail("Entrega",(o.deliveryDate||"-")+" "+(o.deliveryTime||""))}
+    ${detail("Máquina",o.machine||"-")}${detail("Material",(o.material||"-")+(o.materialReference?" | REF: "+o.materialReference:""))}${detail("Laminado",(o.laminate||"-")+(o.laminateReference?" | REF: "+o.laminateReference:""))}
+    ${detail("Acabado",o.finish||"-")}${detail("Cantidad",o.quantity)}${detail("Área total",fmtNum(area)+" m²")}
+    ${detail("Medidas archivo",fmtNum(o.width)+" x "+fmtNum(o.height)+" m")}${detail("Medidas material",fmtNum(o.materialWidth)+" x "+fmtNum(o.materialLength)+" m")}
+    ${detail("Tubos",fmtNum(o.tubes||0)+" m")}${detail("Cordón",fmtNum(o.cord||0)+" m")}${detail("Tapones",o.plugs||0)}${detail("Ojaletes",o.eyelets||0)}${detail("Forma de pago",o.paymentMethod||"-")}
+    ${paymentNeedsAmounts(o.paymentMethod)?detail("Abono","$ "+fmtNum(o.abono||0,0))+detail("Saldo","$ "+fmtNum(o.saldo||0,0)):""}
+   </div>
+   <div class="order-status-editor">
+    <strong style="color:#b8d8f4;font-size:11px">ESTADO</strong>
+    <select id="detail-status-select">${STATUS.map(st=>`<option value="${esc(st)}" ${o.status===st?"selected":""}>${esc(st)}</option>`).join("")}</select>
+    ${(!state.isReadOnlyConsultation)?`<button id="detail-status-save" class="op-btn op-btn-primary op-btn-sm">Guardar estado</button>`:""}
+    <span class="op-badge ${statusClass(o.status)}">Actual: ${esc(o.status||"-")}</span>
+   </div>
+   ${o.notes?`<p class="detail-notes" style="font-size:12px;margin-top:14px"><span class="detail-label">Observaciones</span><br><strong>${esc(o.notes)}</strong></p>`:""}
+  </div>
+ </div>`;
+}
+function detail(label,value){return `<div><div class="detail-label">${esc(label)}</div><div class="detail-value">${esc(value)}</div></div>`}
+
+function filteredOrdersBase(){
+ let rows=visibleOrders();
+ return rows;
+}
+function ordersTab(){
+ const rows=filteredOrdersBase();
+ const today=todayStr();
+ const todayRows=rows.filter(o=>(o.date||"")===today);
+ const olderRows=rows.filter(o=>(o.date||"")!==today);
+ const perPage=state.ordersPerPage||10;
+ const pages=Math.max(1,Math.ceil(olderRows.length/perPage));
+ const page=Math.min(Math.max(1,state.orderHistoryPage||1),pages);
+ const pageRows=olderRows.slice((page-1)*perPage,page*perPage);
+ const showCleanup=state.isAdmin;
+ return `
+ <div class="op-card">
+  <div class="order-history-head">
+   <div><div class="order-day-badge">● ÓRDENES DE HOY · ${esc(today)}</div><div style="font-size:10px;color:#7898b9;margin-top:6px">Las órdenes anteriores se muestran por páginas para mantener la pantalla limpia.</div></div>
+   <div class="op-row">
+    <input id="search-input" placeholder="Buscar por cliente, trabajo u OP" value="${esc(state.search)}" style="min-width:240px">
+    ${state.isAdmin?`<select id="designer-filter"><option value="TODOS">Todos los diseñadores</option>${DESIGNERS.map(d=>`<option value="${d}" ${state.filterDesigner===d?"selected":""}>${d}</option>`).join("")}</select>`:""}
+    <select id="status-filter"><option value="TODOS">Todos los estados</option>${STATUS.map(st=>`<option value="${esc(st)}" ${state.filterStatus===st?"selected":""}>${st}</option>`).join("")}</select>
+   </div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0 9px"><h3 style="margin:0;color:#fff;font-size:14px">Hoy <span style="color:#63cfff">(${todayRows.length})</span></h3></div>
+  ${renderOrderTable(todayRows,"No hay órdenes registradas hoy.")}
+  <div style="height:1px;background:#173a63;margin:20px 0"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h3 style="margin:0;color:#fff;font-size:14px">Días anteriores <span style="color:#7fa6c9">(${olderRows.length})</span></h3><span class="order-page-info">Página ${page} de ${pages}</span></div>
+  ${renderOrderTable(pageRows,"No hay órdenes anteriores que coincidan con los filtros.")}
+  ${pages>1?`<div class="order-pagination"><button class="op-btn op-btn-ghost op-btn-sm" data-order-page="${page-1}" ${page<=1?"disabled":""}>← Anteriores</button><span class="order-page-info">Página ${page} / ${pages}</span><button class="op-btn op-btn-ghost op-btn-sm" data-order-page="${page+1}" ${page>=pages?"disabled":""}>Siguientes →</button></div>`:""}
+  ${showCleanup?`<div class="cleanup-panel"><h3>🧹 Depuración de órdenes</h3><p>Para evitar que la base se llene, puedes eliminar órdenes <b>anteriores</b> al periodo seleccionado. Esta acción es permanente y solo está disponible para Administrador.</p><div class="cleanup-actions"><button class="op-btn op-btn-ghost op-btn-sm" data-cleanup="30">Eliminar anteriores a 30 días</button><button class="op-btn op-btn-ghost op-btn-sm" data-cleanup="15">Eliminar anteriores a 15 días</button></div></div>`:""}
+ </div>${state.cleanupConfirmDays?`<div class="op-modal-bg order-detail-modal"><div class="order-detail-card" style="max-width:480px"><h3 style="margin:0;color:#fff">Confirmar depuración</h3><p style="color:#9db1cc;font-size:12px;line-height:1.6">Se eliminarán de forma permanente las órdenes con fecha <b>anterior</b> a ${state.cleanupConfirmDays} días. Las órdenes de hoy y de los últimos ${state.cleanupConfirmDays} días se conservarán.</p><div class="op-row" style="justify-content:flex-end"><button id="cleanup-cancel" class="op-btn op-btn-ghost">Cancelar</button><button id="cleanup-confirm" data-cleanup="${state.cleanupConfirmDays}" class="op-btn op-btn-danger">Eliminar definitivamente</button></div></div></div>`:""}${state.detailId?detailPanel():""}`;
+}
+function renderOrderTable(rows,emptyText){
+ if(!rows.length)return `<p class="op-empty">${emptyText}</p>`;
+ return `<div style="overflow-x:auto"><table class="op-table"><thead><tr><th>OP</th><th>Diseñador</th><th>Cliente / trabajo</th><th>Entrega</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${rows.map(o=>`<tr>
+  <td><b>${esc(o.opCode)}</b></td><td>${esc(o.designer)}</td>
+  <td><div style="font-weight:650;color:#eef6ff">${esc(o.client)}</div><div style="color:#7c8896;font-size:12px">${esc(o.job||"")}</div></td>
+  <td>${esc(o.deliveryDate||"-")} ${esc(o.deliveryTime||"")}</td>
+  <td><span class="op-badge ${statusClass(o.status)}">${esc(o.status)}</span></td>
+  <td><div class="op-row"><button class="op-link" data-detail="${o.id}">Ver / estado</button><button class="op-link" data-pdf="${o.id}">PDF</button>${(!state.isViewer&&!state.isReadOnlyConsultation)?`<button class="op-link" data-edit="${o.id}">Editar</button>${(state.isAdmin||o.designer===state.role)?`<button class="op-link" data-delete="${o.id}" style="color:#f6602c">Eliminar</button>`:""}`:""}</div></td>
+ </tr>`).join("")}</tbody></table></div>`;
+}
+
+function startEdit(id){
+ const o=state.orders.find(x=>x.id===id);if(!o)return;
+ if(state.isViewer)return;
+ if(!state.isAdmin&&o.designer!==state.role)return;
+ state.editingId=id;
+ const imgs=imageArray(o.imageData);
+ state.form={
+  designer:o.designer||"",client:o.client||"",clientPhone:o.clientPhone||"",job:o.job||"",date:o.date||todayStr(),
+  deliveryDate:o.deliveryDate||"",deliveryTime:o.deliveryTime||"",machine:o.machine||"",
+  material:o.material||"",finish:o.finish||"",laminate:o.laminate||"",materialReference:o.materialReference||"",laminateReference:o.laminateReference||"",status:o.status||"Pendiente",
+  width:String(o.width??""),height:String(o.height??""),materialWidth:String(o.materialWidth??""),
+  materialLength:String(o.materialLength??""),quantity:String(o.quantity||1),eyelets:String(o.eyelets||""),
+  notes:o.notes||"",paymentMethod:o.paymentMethod||"",abono:String(o.abono??""),saldo:String(o.saldo??""),
+  imageData:imgs,imageName:(imageNamesArray(o)[0]||""),imageNames:imageNamesArray(o)
+ };
+ syncMaterialLength();setState({tab:"new",detailId:null});
+}
+
+function submitOrder(){
+ const f=state.form,designer=state.isAdmin?f.designer:state.role;
+ if(!designer){alert("Selecciona un diseñador.");return}
+ if(!f.client.trim()){alert("Escribe el cliente.");return}
+ if(!db){alert("La base de datos no está disponible.");return}
+ syncMaterialLength();
+ const cons=computeConsumables(f);
+ const paymentMethod=f.paymentMethod||"";
+ const abono=paymentNeedsAmounts(paymentMethod)?n(f.abono):0;
+ const saldo=paymentNeedsAmounts(paymentMethod)?n(f.saldo):0;
+
+ const common={
+  designer,client:f.client.trim(),clientPhone:f.clientPhone.trim(),job:f.job.trim(),date:f.date,deliveryDate:f.deliveryDate,
+  deliveryTime:f.deliveryTime,machine:f.machine,material:f.material,materialReference:String(f.materialReference||"").slice(0,20),finish:f.finish,laminate:f.laminate,laminateReference:String(f.laminateReference||"").slice(0,20),
+  status:f.status,width:n(f.width),height:n(f.height),materialWidth:n(f.materialWidth),
+  materialLength:n(f.materialLength),quantity:Math.max(1,Math.round(n(f.quantity))||1),
+  notes:f.notes.trim(),paymentMethod,abono,saldo,imageData:imageArray(f.imageData),imageName:(f.imageNames&&f.imageNames[0])||"",imageNames:Array.isArray(f.imageNames)?f.imageNames:[],tubes:cons.tubes,cord:cons.cord,
+  plugs:cons.plugs,eyelets:Math.max(0,Math.round(n(f.eyelets))||0)
+ };
+
+ if(state.editingId){
+  db.collection("orders").doc(state.editingId).update({...common,generatedAt:Date.now()}).then(()=>{
+   state.editingId=null;state.form=blankForm();setState({tab:"orders"});
+  }).catch(e=>alert("No se pudo actualizar: "+e.message));
+  return;
+ }
+
+ const opNum=nextOp(designer);
+ const now=Date.now();
+ const order={...common,id:uid(),opNum,opCode:opLabel(designer,opNum),createdAt:now,generatedAt:now};
+ db.collection("orders").doc(order.id).set(order).then(()=>{
+  return db.collection("counters").doc(designer.trim().toUpperCase()).set({lastNumber:opNum});
+ }).then(()=>{
+  state.form=blankForm();setState({tab:"orders"});
+ }).catch(e=>alert("No se pudo guardar la orden: "+e.message));
+}
+
+function deleteOrder(id){
+ const o=state.orders.find(x=>x.id===id);if(!o)return;
+ const canDelete=state.isAdmin||(!state.isViewer&&o.designer===state.role);
+ if(!canDelete){
+  alert("Solo puedes eliminar tus propias órdenes. El administrador puede eliminar cualquier orden.");
+  return;
+ }
+ if(!confirm("¿Eliminar la orden "+(o.opCode||"")+"?\n\nEsta acción es permanente."))return;
+ if(db)db.collection("orders").doc(id).delete().catch(e=>alert("No se pudo eliminar: "+e.message));
+}
+
+async function purgeOldOrders(days){
+ if(!state.isAdmin||!db)return;
+ const cutoff=new Date();cutoff.setHours(0,0,0,0);cutoff.setDate(cutoff.getDate()-days);
+ const targets=(state.orders||[]).filter(o=>{
+  const d=String(o.date||"");
+  return d && new Date(d+"T00:00:00")<cutoff;
+ });
+ if(!targets.length){alert(`No hay órdenes anteriores a ${days} días para eliminar.`);setState({cleanupConfirmDays:null});return;}
+ try{
+  for(let i=0;i<targets.length;i+=400){
+   const batch=db.batch();
+   targets.slice(i,i+400).forEach(o=>batch.delete(db.collection("orders").doc(o.id)));
+   await batch.commit();
+  }
+  state.cleanupConfirmDays=null;state.orderHistoryPage=1;render();
+  alert(`Se eliminaron ${targets.length} órdenes anteriores a ${days} días.`);
+ }catch(e){alert("No se pudieron eliminar todas las órdenes: "+e.message);}
+}
+
+function quickStatus(id,value){
+ const o=state.orders.find(x=>x.id===id);if(!o)return;
+ if(state.isReadOnlyConsultation)return;
+ if(!state.isAdmin&&!state.isViewer&&o.designer!==state.role)return;
+ if(db)db.collection("orders").doc(id).update({status:value,statusUpdatedAt:Date.now(),statusUpdatedBy:state.role||"ADMINISTRADOR"}).then(()=>{state.orders=state.orders.map(x=>x.id===id?{...x,status:value}:x);render();}).catch(err=>alert("No se pudo actualizar el estado: "+err.message));
+}
+
+function printableOrderHtml(o){
+ const area=n(o.width)*n(o.height)*n(o.quantity);
+ const generatedTs=o.generatedAt||o.createdAt;
+ const generatedDate=formatGeneratedDate(generatedTs);
+ const generatedDateOnly=generatedTs?new Date(generatedTs).toLocaleDateString("es-CO",{day:"2-digit",month:"2-digit",year:"numeric"}):"-";
+ const opClass=designerOpClass(o.designer);
+ const imgs=imageArray(o.imageData);
+ const names=imageNamesArray(o);
+ const imageCount=imgs.length;
+ const imageCols=imageCount<=1?1:2;
+ const imageRows=imageCount?Math.ceil(imageCount/imageCols):1;
+ const imageGridStyle=imageCount
+  ? `grid-template-columns:repeat(${imageCols},minmax(0,1fr));grid-template-rows:repeat(${imageRows},minmax(0,1fr));`
+  : "";
+ const imageHtml=imgs.length
+  ? `<div class="print-images-grid" style="${imageGridStyle}">${imgs.map((im,i)=>`<div class="print-image-item"><img src="${esc(im)}" alt="Referencia ${i+1}"></div>`).join("")}</div>`
+  : `<div class="print-no-image">Sin imagen<br>adjunta</div>`;
+ const row=(a,b,cls="")=>`<tr class="${cls}"><td>${esc(a)}</td><td>${esc(b)}</td></tr>`;
+ const rowReference=(a,b,ref,cls="")=>`<tr class="${cls}"><td>${esc(a)}</td><td>${esc(b)}${ref?` <span class="print-reference">REFERENCIA: ${esc(ref)}</span>`:""}</td></tr>`;
+ const delivery=((o.deliveryDate||"-")+" "+(o.deliveryTime||"")).trim();
+ const paymentRows=paymentNeedsAmounts(o.paymentMethod)
+  ? `<tr class="print-payment-credit"><td>Forma de pago</td><td><div class="print-payment-credit-wrap"><div class="print-payment-method">Crédito</div><div class="print-payment-values"><div class="print-payment-cell print-abono">Abono: $ ${fmtNum(o.abono||0,0)}</div><div class="print-payment-cell print-saldo">Saldo: $ ${fmtNum(o.saldo||0,0)}</div></div></div></td></tr>`
+  : row("Forma de pago",o.paymentMethod||"-");
+ return `<div class="print-sheet"><div class="print-fit">
+  <div class="print-head">
+   <div><div class="print-head-title">Orden de producción</div><div class="print-generated">GENERADA: ${esc(generatedDate)}</div></div>
+   <div class="print-op ${opClass}">${esc(o.opCode)}</div>
+  </div>
+  <div class="print-body">
+   <div class="print-image-box">${imageHtml}</div>
+   <table class="print-table"><tbody>
+    ${row("Cliente",o.client||"-")}
+    ${row("Teléfono",o.clientPhone||"-")}
+    ${row("Entrega",delivery||"-","print-red-row")}
+    ${row("Archivo",o.job||"-","print-red-row")}
+    ${row("Medida archivo",fmtNum(o.width)+" m × "+fmtNum(o.height)+" m","print-red-row")}
+    ${row("Medida material",fmtNum(o.materialWidth)+" m × "+fmtNum(o.materialLength)+" m","print-red-row")}
+    ${row("Área total",fmtNum(area)+" m²")}
+    ${row("Máquina",o.machine||"-")}
+    ${rowReference("Material",o.material||"-",o.materialReference,"print-red-row")}
+    ${row("Cantidad",o.quantity||0,"print-red-row")}
+    ${rowReference("Laminado",o.laminate||"-",o.laminateReference,"print-red-row")}
+    ${row("Acabado",o.finish||"-")}
+    ${row("Tubos",fmtNum(o.tubes||0)+" m")}
+    ${row("Cordón",fmtNum(o.cord||0)+" m")}
+    ${row("Tapones",o.plugs||0)}
+    ${row("Ojaletes",o.eyelets||0)}
+    ${paymentRows}
+   </tbody></table>
+  </div>
+  <div class="print-notes ${o.notes?"has-notes":""}"><b>Observaciones:</b> ${esc(o.notes||"-")}</div>
+  <div class="print-signatures"><span>DISEÑO<br>____________________________</span><span>IMPRESIÓN<br>____________________________</span><span>ACABADOS<br>____________________________</span><span>CORTE<br>____________________________</span></div>
+ </div></div>`;
+}
+
+async function exportOrderPdf(id){
+ const o=state.orders.find(x=>x.id===id);if(!o)return;
+ const pa=document.getElementById("print-area");
+ pa.innerHTML=printableOrderHtml(o);
+ const prev={
+  display:pa.style.display,visibility:pa.style.visibility,position:pa.style.position,
+  left:pa.style.left,top:pa.style.top,width:pa.style.width,height:pa.style.height,
+  padding:pa.style.padding,boxSizing:pa.style.boxSizing
+ };
+
+ // La página NO se escala ni se transforma. Se imprime directamente en
+ // media carta horizontal: 8.5 × 5.5 pulgadas.
+ pa.style.display="block";
+ pa.style.visibility="hidden";
+ pa.style.position="static";
+ pa.style.left="auto";
+ pa.style.top="auto";
+ pa.style.width="8.5in";
+ pa.style.height="5.5in";
+ pa.style.padding="0.25in";
+ pa.style.boxSizing="border-box";
+
+ // Esperar a que las imágenes estén listas para que no aparezcan espacios vacíos.
+ const images=Array.from(pa.querySelectorAll("img"));
+ await Promise.all(images.map(img=>new Promise(resolve=>{
+  if(img.complete){
+   if(img.decode)img.decode().catch(()=>{}).finally(resolve); else resolve();
+  }else{
+   img.addEventListener("load",resolve,{once:true});
+   img.addEventListener("error",resolve,{once:true});
+  }
+ })));
+ await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+
+ const cleanup=()=>{
+  pa.style.display=prev.display;
+  pa.style.visibility=prev.visibility;
+  pa.style.position=prev.position;
+  pa.style.left=prev.left;
+  pa.style.top=prev.top;
+  pa.style.width=prev.width;
+  pa.style.height=prev.height;
+  pa.style.padding=prev.padding;
+  pa.style.boxSizing=prev.boxSizing;
+ };
+ window.addEventListener("afterprint",cleanup,{once:true});
+
+ // Se muestra en su posición real antes de imprimir. No hay scale(), zoom,
+ // reducción automática ni modificación del tamaño de la orden.
+ pa.style.visibility="visible";
+ await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+ window.print();
+}
+
+function resetCounter(d){
+ if(!db)return;
+ db.collection("counters").doc(d).set({lastNumber:0}).then(()=>setState({confirmResetFor:null})).catch(e=>alert("No se pudo reiniciar el consecutivo: "+e.message));
+}
+
+async function resetDesignsForDesigner(d){
+ if(!db||!state.isAdmin)return;
+ const designer=String(d||"").trim().toUpperCase();
+ if(!DESIGNERS.includes(designer))return;
+ if(!confirm("¿REINICIAR LOS DISEÑOS DE "+designer+"?\n\nSe eliminarán los diseños activos y el acumulado histórico de rendimiento de este diseñador.\n\nSus órdenes (OP) NO se borrarán ni modificarán.\n\nEsta acción es permanente y deja el módulo de diseños en $0 y 0 diseños para este diseñador."))return;
+ try{
+  const targets=[];
+  const logs=await db.collection("designLogs").where("designer","==",designer).get();
+  logs.forEach(doc=>targets.push({collection:"designLogs",id:doc.id}));
+  const stats=await db.collection("designStats").where("designer","==",designer).get();
+  stats.forEach(doc=>targets.push({collection:"designStats",id:doc.id}));
+  for(let i=0;i<targets.length;i+=450){
+   const batch=db.batch();
+   targets.slice(i,i+450).forEach(t=>batch.delete(db.collection(t.collection).doc(t.id)));
+   await batch.commit();
+  }
+  state.confirmResetDesignFor=null;
+  render();
+  alert("Diseños de "+designer+" reiniciados correctamente. El rendimiento de diseños quedó en cero. Las órdenes OP permanecen intactas.");
+ }catch(err){
+  alert("No se pudieron reiniciar los diseños de "+designer+": "+err.message);
+ }
+}
+
+function adminCountersTab(){
+ return `<div class="op-card">
+ <p style="font-weight:700;margin:0;color:#ffffff">Consecutivos de órdenes (OP)</p>
+ <p class="op-note" style="margin-bottom:14px">Reiniciar cambia el próximo número a 0001. No borra ni renumera órdenes existentes.</p>
+ <div class="op-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+ ${DESIGNERS.map(d=>{
+  const last=state.counters[d]||0,confirming=state.confirmResetFor===d;
+  return `<div style="border:1px solid #232a32;border-radius:10px;padding:13px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+   <div><b style="color:#eef6ff">${d}</b><div style="font-size:12px;color:#9db1cc">Último #: ${String(last).padStart(4,"0")}</div></div>
+   ${confirming?'<div class="op-row"><button id="reset-confirm" data-reset-confirm="'+d+'" class="op-btn op-btn-danger op-btn-sm">Confirmar</button><button id="reset-cancel" class="op-btn op-btn-ghost op-btn-sm">Cancelar</button></div>':`<button class="op-btn op-btn-ghost op-btn-sm" data-reset-ask="${d}">Reiniciar OP</button>`}
+  </div>`;
+ }).join("")}
+ </div>
+ </div>
+ <div class="op-card" style="margin-top:14px">
+  <p style="font-weight:700;margin:0;color:#ffffff">Reiniciar diseños por diseñador</p>
+  <p class="op-note" style="margin-bottom:14px">Esta opción es independiente del consecutivo OP. Elimina los diseños activos y el historial consolidado de rendimiento del diseñador seleccionado, dejándolo en <b>0 diseños y $0</b>. No modifica ninguna orden de producción.</p>
+  <div class="op-grid" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr))">
+  ${DESIGNERS.map(d=>{
+   const confirming=state.confirmResetDesignFor===d;
+   return `<div style="border:1px solid #3a2630;border-radius:10px;padding:13px;display:flex;justify-content:space-between;align-items:center;gap:10px;background:#170f16">
+    <div><b style="color:#eef6ff">${d}</b><div style="font-size:12px;color:#9db1cc">Diseños: activos + histórico</div></div>
+    ${confirming?'<div class="op-row"><button class="op-btn op-btn-danger op-btn-sm" data-reset-design-confirm="'+d+'">Confirmar</button><button class="op-btn op-btn-ghost op-btn-sm" data-reset-design-cancel="1">Cancelar</button></div>':`<button class="op-btn op-btn-danger op-btn-sm" data-reset-design-ask="${d}">Reiniciar diseños</button>`}
+   </div>`;
+  }).join("")}
+  </div>
+ </div>`;
+}
+function designersAdminTab(){
+ return `<div class="op-card"><p style="font-weight:800;color:#fff;margin:0 0 5px">Administrar diseñadores</p>
+ <p class="op-note" style="margin-bottom:16px">Crea perfiles con clave propia o retira el acceso de quienes ya no estén. Las órdenes históricas se conservan.</p>
+ <form id="designer-admin-form" class="op-grid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));align-items:end">
+ <label class="op-field"><span>Nombre del diseñador</span><input id="new-designer-name" maxlength="40" required placeholder="Nombre y apellido"></label>
+ <label class="op-field"><span>Clave de acceso (4 a 12 caracteres)</span><input id="new-designer-pin" type="password" minlength="4" maxlength="12" required placeholder="Crear clave"></label>
+ <button class="op-btn op-btn-primary" type="submit">+ Crear diseñador</button></form>
+ <div style="margin-top:20px;overflow-x:auto"><table class="op-table"><thead><tr><th>Diseñador activo</th><th>Acceso</th><th>Acción</th></tr></thead><tbody>
+ ${DESIGNERS.map(d=>`<tr><td><b>${esc(d)}</b></td><td>Clave configurada</td><td><button class="op-btn op-btn-danger op-btn-sm" data-designer-remove="${esc(d)}">Eliminar acceso</button></td></tr>`).join("")}
+ </tbody></table></div></div>`;
+}
+async function createDesigner(name,pin){
+ if(!state.isAdmin||!db)return;
+ name=String(name||"").trim().toUpperCase();pin=String(pin||"").trim();
+ if(name.length<2){alert("Escribe un nombre válido.");return}
+ if(pin.length<4||pin.length>12){alert("La clave debe tener entre 4 y 12 caracteres.");return}
+ if(DESIGNERS.includes(name)){alert("Ya existe un diseñador con ese nombre.");return}
+ try{await db.collection("designers").doc(name).set({name,pin,active:true,createdAt:Date.now()});alert("Diseñador creado correctamente.");}
+ catch(e){alert("No se pudo crear el diseñador: "+e.message)}
+}
+async function removeDesigner(name){
+ if(!state.isAdmin||!db)return;
+ if(!confirm("¿Eliminar el acceso de "+name+"? Sus órdenes e historial no se borrarán."))return;
+ try{await db.collection("designers").doc(name).delete();}
+ catch(e){alert("No se pudo eliminar el diseñador: "+e.message)}
+}
+function consumableTotals(designer){
+ const mine=state.orders.filter(o=>o.designer===designer);
+ return {
+  tubes:mine.reduce((a,o)=>a+n(o.tubes),0),cord:mine.reduce((a,o)=>a+n(o.cord),0),
+  plugs:mine.reduce((a,o)=>a+n(o.plugs),0),eyelets:mine.reduce((a,o)=>a+n(o.eyelets),0)
+ };
+}
+
+const chartColors={Pendiente:"#f5c451","En produccion":"#57c1e8",Terminada:"#5fd48a",Entregada:"#9fb0bd",Garantia:"#ff5d73"};
+
+function chartBar(designers, orders=state.orders){
+ const max=Math.max(1,...designers.map(d=>orders.filter(o=>o.designer===d).length));
+ return `<div class="bar-chart">${designers.map(d=>{
+  const total=orders.filter(o=>o.designer===d).length;
+  const parts=STATUS.map(s=>({s,c:orders.filter(o=>o.designer===d&&o.status===s).length})).filter(x=>x.c);
+  return `<div class="bar-group">
+   <div class="bar-stack" style="height:${Math.max(2,total/max*185)}px">${parts.map(x=>`<div class="bar" style="height:${x.c/Math.max(total,1)*100}%;background:${chartColors[x.s]}"></div>`).join("")}</div>
+   <div class="bar-label">${esc(d)}<br>${total}</div>
+  </div>`;
+ }).join("")}</div>
+ <div class="legend">${STATUS.map(s=>`<span class="legend-item"><i class="legend-dot" style="background:${chartColors[s]}"></i>${s}</span>`).join("")}</div>`;
+}
+
+function simpleBarChart(items, labelKey="label", valueKey="value", suffix=""){
+ const max=Math.max(1,...items.map(x=>Number(x[valueKey])||0));
+ return `<div class="bar-chart">${items.map(x=>{
+  const v=Number(x[valueKey])||0;
+  return `<div class="bar-group">
+   <div class="bar-stack" style="height:${Math.max(v?3:1,v/max*185)}px;background:#57c1e8"><div class="bar" style="height:100%;background:#57c1e8"></div></div>
+   <div class="bar-label">${esc(String(x[labelKey]))}<br>${fmtNum(v,0)}${suffix}</div>
+  </div>`;
+ }).join("")}</div>`;
+}
+
+function statusPercentChart(designers, orders){
+ return `<div class="bar-chart">${designers.map(d=>{
+  const mine=orders.filter(o=>o.designer===d);
+  const total=mine.length||1;
+  let used=0;
+  const parts=STATUS.map(s=>{
+   const c=mine.filter(o=>o.status===s).length;
+   const pct=c/total*100; used+=pct;
+   return {s,pct};
+  }).filter(x=>x.pct>0);
+  return `<div class="bar-group">
+   <div class="bar-stack" style="height:185px">${parts.map(x=>`<div class="bar" style="height:${x.pct}%;background:${chartColors[x.s]}" title="${x.s}: ${x.pct.toFixed(1)}%"></div>`).join("")}</div>
+   <div class="bar-label">${esc(d)}<br>100%</div>
+  </div>`;
+ }).join("")}</div>
+ <div class="legend">${STATUS.map(s=>`<span class="legend-item"><i class="legend-dot" style="background:${chartColors[s]}"></i>${s}</span>`).join("")}</div>`;
+}
+
+function dashboardTab(){
+ const designerFilter=state.dashDesignerFilter||"TODOS";
+ const machineFilter=state.dashMachineFilter||"TODOS";
+ const guaranteeFilter=state.dashGuaranteeFilter||"TODOS";
+ const allOrders=state.orders||[];
+ const dates=allOrders.map(o=>o.date).filter(Boolean).sort();
+ const dataMin=dates[0]||todayStr(), dataMax=dates[dates.length-1]||todayStr();
+ const startDate=state.dashStartDate||dataMin;
+ const endDate=state.dashEndDate||dataMax;
+ const inPeriod=o=>{const d=o.date||"";return (!startDate||d>=startDate)&&(!endDate||d<=endDate)};
+ const machines=[...new Set(allOrders.map(o=>o.machine).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b)));
+ let scoped=allOrders.filter(inPeriod);
+ if(designerFilter!=="TODOS")scoped=scoped.filter(o=>o.designer===designerFilter);
+ if(machineFilter!=="TODOS")scoped=scoped.filter(o=>o.machine===machineFilter);
+ if(guaranteeFilter==="GARANTIA")scoped=scoped.filter(o=>o.status==="Garantia");
+ if(guaranteeFilter==="SIN_GARANTIA")scoped=scoped.filter(o=>o.status!=="Garantia");
+ const designers=designerFilter==="TODOS"?DESIGNERS:[designerFilter];
+ const visibleDesigners=designers.filter(d=>scoped.some(o=>o.designer===d));
+ const total=scoped.length;
+ const counts=Object.fromEntries(STATUS.map(s=>[s,scoped.filter(o=>o.status===s).length]));
+ const guaranteeQ=counts.Garantia||0;
+ const guaranteePct=total?Math.round(guaranteeQ/total*100):0;
+ const guaranteeByDesigner=visibleDesigners.map(d=>{const q=scoped.filter(o=>o.designer===d).length;const g=scoped.filter(o=>o.designer===d&&o.status==="Garantia").length;return {designer:d,q,g,pct:q?Math.round(g/q*100):0};});
+ const guaranteeByMachine=machines.map(m=>{const q=scoped.filter(o=>o.machine===m).length;const g=scoped.filter(o=>o.machine===m&&o.status==="Garantia").length;return {machine:m,q,g,pct:q?Math.round(g/q*100):0};}).filter(x=>x.q>0);
+ const completed=counts.Terminada+counts.Entregada;
+ const completedOnly=counts.Terminada;
+ const completionRate=total?Math.round(completed/total*100):0;
+ const productionPerformance=total?Math.round(completedOnly/total*100):0;
+ const designerPerformance=visibleDesigners.map(d=>{const mine=scoped.filter(o=>o.designer===d);const q=mine.length;const done=mine.filter(o=>o.status==="Terminada").length;return {designer:d,q,done,pct:q?Math.round(done/q*100):0};}).sort((a,b)=>b.pct-a.pct||b.q-a.q);
+ const pending=counts.Pendiente+counts["En produccion"];
+ const machineCounts=machines.map(m=>({label:m,value:scoped.filter(o=>o.machine===m).length})).filter(x=>x.value>0);
+ const designerCounts=visibleDesigners.map(d=>({label:d,value:scoped.filter(o=>o.designer===d).length})).sort((a,b)=>b.value-a.value);
+ const totals=visibleDesigners.map(d=>({designer:d,tubes:scoped.filter(o=>o.designer===d).reduce((a,o)=>a+n(o.tubes),0),cord:scoped.filter(o=>o.designer===d).reduce((a,o)=>a+n(o.cord),0),plugs:scoped.filter(o=>o.designer===d).reduce((a,o)=>a+n(o.plugs),0),eyelets:scoped.filter(o=>o.designer===d).reduce((a,o)=>a+n(o.eyelets),0)}));
+ const allUnits=totals.reduce((a,t)=>a+t.plugs+t.eyelets,0);
+ const allLength=totals.reduce((a,t)=>a+t.tubes+t.cord,0);
+ const fmtDate=d=>d?new Date(d+"T00:00:00").toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"}):"—";
+ const periodLabel=startDate===endDate?fmtDate(startDate):`${fmtDate(startDate)} — ${fmtDate(endDate)}`;
+ const periodDays=Math.max(1,Math.round((new Date(endDate+"T00:00:00")-new Date(startDate+"T00:00:00"))/86400000)+1);
+ const byDay={}; scoped.forEach(o=>{if(o.date)byDay[o.date]=(byDay[o.date]||0)+1});
+ const trend=Object.keys(byDay).sort().map(d=>({label:new Date(d+"T00:00:00").toLocaleDateString("es-CO",{day:"2-digit",month:"short"}),value:byDay[d]}));
+ const maxTrend=Math.max(1,...trend.map(x=>x.value));
+ const trendHtml=trend.length?`<div class="dash-trend">${trend.map(x=>`<div class="dash-trend-col"><div class="dash-trend-value">${x.value}</div><div class="dash-trend-bar" style="height:${Math.max(8,x.value/maxTrend*145)}px"></div><div class="dash-trend-label">${x.label}</div></div>`).join("")}</div>`:`<div class="dash-empty">Sin órdenes en el periodo seleccionado.</div>`;
+ const setRange=(a,b)=>`<button type="button" class="dash-range ${startDate===a&&endDate===b?"active":""}" data-dash-range="${a}|${b}">${arguments}</button>`;
+ const last7=new Date(endDate+"T00:00:00");last7.setDate(last7.getDate()-6);const last7s=last7.toISOString().slice(0,10);
+ const last30=new Date(endDate+"T00:00:00");last30.setDate(last30.getDate()-29);const last30s=last30.toISOString().slice(0,10);
+ return `
+ <section class="dash-command-center">
+  <div class="dash-hero">
+   <div><div class="dash-kicker">CONTROL DE PRODUCCIÓN · COMITÉ</div><h1>Centro de rendimiento</h1><p>Lectura ejecutiva de producción, estado y capacidad para toma de decisiones.</p></div>
+   <div class="dash-period-badge"><span>PERIODO ANALIZADO</span><b>${periodLabel}</b><small>${periodDays} días · ${total} órdenes</small></div>
+  </div>
+  <div class="dash-controlbar">
+   <div class="dash-control"><label>Desde</label><input id="dash-start-date" type="date" value="${esc(startDate)}" min="${esc(dataMin)}" max="${esc(dataMax)}"></div>
+   <div class="dash-control"><label>Hasta</label><input id="dash-end-date" type="date" value="${esc(endDate)}" min="${esc(dataMin)}" max="${esc(dataMax)}"></div>
+   <div class="dash-control"><label>Diseñador</label><select id="dash-designer-filter"><option value="TODOS">Todos</option>${DESIGNERS.map(d=>`<option value="${esc(d)}" ${designerFilter===d?"selected":""}>${esc(d)}</option>`).join("")}</select></div>
+   <div class="dash-control"><label>Máquina</label><select id="dash-machine-filter"><option value="TODOS">Todas</option>${machines.map(m=>`<option value="${esc(m)}" ${machineFilter===m?"selected":""}>${esc(m)}</option>`).join("")}</select></div>
+   <div class="dash-control"><label>Garantía</label><select id="dash-guarantee-filter"><option value="TODOS" ${guaranteeFilter==="TODOS"?"selected":""}>Todas las órdenes</option><option value="GARANTIA" ${guaranteeFilter==="GARANTIA"?"selected":""}>Solo garantías</option><option value="SIN_GARANTIA" ${guaranteeFilter==="SIN_GARANTIA"?"selected":""}>Sin garantía</option></select></div>
+   <div class="dash-presets"><button type="button" class="dash-range" data-dash-range="${last7s}|${endDate}">7 días</button><button type="button" class="dash-range" data-dash-range="${last30s}|${endDate}">30 días</button><button type="button" class="dash-range" data-dash-range="${dataMin}|${dataMax}">Todo</button></div>
+  </div>
+  <div class="dash-kpis">
+   <div class="dash-kpi kpi-main"><span>ÓRDENES DEL PERIODO</span><strong>${fmtNum(total,0)}</strong><em>Q</em><div class="kpi-line"><i style="width:${Math.min(100,total?100:0)}%"></i></div></div>
+   <div class="dash-kpi"><span>ENTREGADAS + TERMINADAS</span><strong>${fmtNum(completed,0)}</strong><small>${completionRate}% del periodo</small></div>
+   <div class="dash-kpi"><span>EN CURSO / PENDIENTES</span><strong>${fmtNum(pending,0)}</strong><small>${total?Math.round(pending/total*100):0}% del periodo</small></div>
+   <div class="dash-kpi"><span>GARANTÍAS</span><strong>${fmtNum(guaranteeQ,0)} <em style="position:static;font-size:13px">Q</em></strong><small>${guaranteePct}% del periodo</small></div>
+   <div class="dash-kpi"><span>PRODUCTIVIDAD MEDIA</span><strong>${fmtNum(total/periodDays,1)}</strong><small>órdenes / día</small></div>
+   <div class="dash-kpi kpi-performance"><span>RENDIMIENTO PRODUCCIÓN</span><strong>${productionPerformance}%</strong><small>${completedOnly} terminadas de ${total} órdenes</small><div class="kpi-line"><i style="width:${productionPerformance}%"></i></div></div>
+  </div>
+  <div class="dash-grid dash-grid-top">
+   <div class="dash-panel dash-panel-wide"><div class="dash-panel-head"><div><span class="dash-eyebrow">RITMO</span><h3>Órdenes por día</h3></div><b>${trend.length} días con actividad</b></div>${trendHtml}</div>
+   <div class="dash-panel"><div class="dash-panel-head"><div><span class="dash-eyebrow">ESTADO</span><h3>Distribución ejecutiva</h3></div><b>${completionRate}%</b></div><div class="dash-donut"><div class="dash-donut-ring" style="background:conic-gradient(${chartColors.Entregada} 0 ${total?counts.Entregada/total*100:0}%,${chartColors.Terminada} ${total?counts.Entregada/total*100:0}% ${total?(counts.Entregada+counts.Terminada)/total*100:0}%,${chartColors["En produccion"]} ${total?(counts.Entregada+counts.Terminada)/total*100:0}% ${total?(counts.Entregada+counts.Terminada+counts["En produccion"])/total*100:0}%,${chartColors.Pendiente} ${total?(counts.Entregada+counts.Terminada+counts["En produccion"])/total*100:0}% 100%)"><div>${completionRate}<small>%</small></div></div></div><div class="dash-legend">${STATUS.map(s=>`<span><i style="background:${chartColors[s]}"></i>${s}<b>${counts[s]}</b></span>`).join("")}</div></div>
+  </div>
+  <div class="dash-grid">
+   <div class="dash-panel dash-panel-wide"><div class="dash-panel-head"><div><span class="dash-eyebrow">Q · RANKING</span><h3>Volumen por diseñador</h3></div><b>Órdenes</b></div><div class="dash-rankbars">${designerCounts.map((x,i)=>`<div class="dash-rank"><div class="dash-rank-top"><span><b>${i+1}</b> ${esc(x.label)}</span><strong>${x.value}</strong></div><div class="dash-rank-track"><i style="width:${Math.max(3,x.value/(designerCounts[0]?.value||1)*100)}%"></i></div></div>`).join("")||'<div class="dash-empty">Sin datos.</div>'}</div></div>
+   <div class="dash-panel"><div class="dash-panel-head"><div><span class="dash-eyebrow">RENDIMIENTO REAL</span><h3>% de órdenes terminadas</h3></div><b>Terminadas / Q</b></div><div class="dash-rankbars">${designerPerformance.map((x,i)=>`<div class="dash-rank"><div class="dash-rank-top"><span><b>${i+1}</b> ${esc(x.designer)}</span><strong>${x.pct}%</strong></div><div class="dash-rank-track"><i style="width:${x.pct}%;background:linear-gradient(90deg,#52c982,#8be0a9)"></i></div><div style="display:flex;justify-content:space-between;margin-top:4px;color:#8196a1;font-size:10px"><span>${x.done} terminadas</span><span>${x.q} órdenes</span></div></div>`).join("")||'<div class="dash-empty">Sin datos.</div>'}</div></div>
+  </div>
+  <div class="dash-grid">
+   <div class="dash-panel dash-panel-wide"><div class="dash-panel-head"><div><span class="dash-eyebrow">ESTADO · %</span><h3>Composición de las órdenes por diseñador</h3></div><b>Distribución del periodo</b></div><div class="dash-status-table">${visibleDesigners.map(d=>{const mine=scoped.filter(o=>o.designer===d),tot=mine.length||1;return `<div class="dash-status-row"><div><span>${esc(d)}</span><b>${mine.length} Q</b></div><div class="dash-status-stack">${STATUS.map(s=>{const p=mine.filter(o=>o.status===s).length/tot*100;return p?`<i title="${s}: ${p.toFixed(1)}%" style="width:${p}%;background:${chartColors[s]}"></i>`:""}).join("")}</div><small>${mine.length?Math.round((mine.filter(o=>o.status==="Terminada"||o.status==="Entregada").length/mine.length)*100):0}% terminadas + entregadas</small></div>`}).join("")||'<div class="dash-empty">Sin datos.</div>'}</div></div>
+   <div class="dash-panel"><div class="dash-panel-head"><div><span class="dash-eyebrow">LECTURA CLAVE</span><h3>Rendimiento del área</h3></div><b>${productionPerformance}%</b></div><div style="display:grid;place-items:center;min-height:150px"><div class="dash-donut-ring" style="background:conic-gradient(#55c98a 0 ${productionPerformance}%,#24343d ${productionPerformance}% 100%)"><div>${productionPerformance}<small>%</small></div></div></div><div style="text-align:center;color:#91a4ae;font-size:11px">Basado exclusivamente en órdenes con estado <b style="color:#fff">Terminada</b>.</div></div>
+  </div>
+  <div class="dash-grid">
+   <div class="dash-panel dash-panel-wide"><div class="dash-panel-head"><div><span class="dash-eyebrow">GARANTÍAS · Q</span><h3>Garantías por diseñador</h3></div><b>${guaranteeQ} Q</b></div><div class="dash-rankbars">${guaranteeByDesigner.map(x=>`<div class="dash-rank"><div class="dash-rank-top"><span>${esc(x.designer)}</span><strong>${x.g} Q</strong></div><div class="dash-rank-track"><i style="width:${guaranteeQ?Math.max(3,x.g/guaranteeQ*100):0}%;background:linear-gradient(90deg,#ff4f69,#ff8a9a)"></i></div></div>`).join("")||'<div class="dash-empty">Sin datos.</div>'}</div></div>
+   <div class="dash-panel"><div class="dash-panel-head"><div><span class="dash-eyebrow">GARANTÍAS · %</span><h3>Participación de garantías</h3></div><b>${guaranteePct}%</b></div><div style="display:grid;place-items:center;min-height:150px"><div class="dash-donut-ring" style="background:conic-gradient(#ff5d73 0 ${guaranteePct}%,#24343d ${guaranteePct}% 100%)"><div>${guaranteePct}<small>%</small></div></div></div><div style="text-align:center;color:#91a4ae;font-size:11px">${guaranteeQ} garantías de ${total} órdenes del periodo.</div></div>
+  </div>
+  <div class="dash-grid">
+   <div class="dash-panel dash-panel-wide"><div class="dash-panel-head"><div><span class="dash-eyebrow">GARANTÍAS · % POR DISEÑADOR</span><h3>Proporción de garantías por diseñador</h3></div><b>Garantías / Q</b></div><div class="dash-rankbars">${guaranteeByDesigner.map(x=>`<div class="dash-rank"><div class="dash-rank-top"><span>${esc(x.designer)}</span><strong>${x.pct}%</strong></div><div class="dash-rank-track"><i style="width:${x.pct}%;background:linear-gradient(90deg,#ff5d73,#ff9aab)"></i></div><div style="display:flex;justify-content:space-between;margin-top:4px;color:#8196a1;font-size:10px"><span>${x.g} garantías</span><span>${x.q} órdenes</span></div></div>`).join("")||'<div class="dash-empty">Sin datos.</div>'}</div></div>
+   <div class="dash-panel"><div class="dash-panel-head"><div><span class="dash-eyebrow">GARANTÍAS · % POR MÁQUINA</span><h3>Incidencia de garantía</h3></div><b>Garantías / Q</b></div><div class="dash-rankbars">${guaranteeByMachine.map(x=>`<div class="dash-rank"><div class="dash-rank-top"><span>${esc(x.machine)}</span><strong>${x.pct}%</strong></div><div class="dash-rank-track"><i style="width:${x.pct}%;background:linear-gradient(90deg,#ff5d73,#ff9aab)"></i></div><div style="display:flex;justify-content:space-between;margin-top:4px;color:#8196a1;font-size:10px"><span>${x.g} garantías</span><span>${x.q} órdenes</span></div></div>`).join("")||'<div class="dash-empty">Sin datos.</div>'}</div></div>
+  </div>
+  <div class="dash-grid">
+   <div class="dash-panel dash-panel-wide"><div class="dash-panel-head"><div><span class="dash-eyebrow">CAPACIDAD</span><h3>Carga por máquina</h3></div><b>Q órdenes</b></div><div class="dash-machine-grid">${machineCounts.map(x=>`<div class="dash-machine"><span>${esc(x.label)}</span><strong>${x.value}</strong><div><i style="width:${Math.max(4,x.value/(machineCounts[0]?.value||1)*100)}%"></i></div></div>`).join("")||'<div class="dash-empty">Sin datos.</div>'}</div></div>
+   <div class="dash-panel"><div class="dash-panel-head"><div><span class="dash-eyebrow">RECURSOS</span><h3>Consumo registrado</h3></div><b>Periodo</b></div><div class="dash-resource"><strong>${fmtNum(allLength)} <small>m</small></strong><span>Tubos + cordón</span></div><div class="dash-resource"><strong>${fmtNum(allUnits,0)}</strong><span>Tapones + ojaletes</span></div></div>
+  </div>
+  <div class="dash-panel dash-footer-panel"><div><span class="dash-eyebrow">LECTURA DE JUNTA</span><h3>Resumen del periodo</h3></div><div class="dash-callouts"><div><b>${completedOnly}</b><span>órdenes terminadas</span></div><div><b>${pending}</b><span>órdenes que requieren seguimiento</span></div><div><b>${machineCounts.length}</b><span>máquinas activas en el filtro</span></div><div><b>${visibleDesigners.length}</b><span>diseñadores con actividad</span></div></div></div>
+ </section>`;
+}
+function designPayment(value){
+ const v=Math.max(0,n(value));
+ // Regla especial: un diseño cobrado exactamente en $10.000 COP
+ // se liquida íntegramente al diseñador y no genera participación para la empresa.
+ if(v===10000)return {designer:v,company:0,rate:1};
+ return {designer:v*0.50,company:v*0.50,rate:0.50};
+}
+
+function designStatId(designer,date){
+ return `${String(designer||"").trim().toUpperCase()}__${String(date||"").trim()}`;
+}
+function designStatsRows(){
+ return Array.isArray(state.designStats)?state.designStats:[];
+}
+async function consolidatePaidDesign(item,actor){
+ const p=designPayment(item.value), paidAt=Date.now();
+ // Guardar primero un comprobante detallado para poder verificar qué OP se pagó.
+ const paymentRef=db.collection("designPayments").doc(item.id);
+ await paymentRef.set({designId:item.id,designer:String(item.designer||"").trim().toUpperCase(),date:item.date||todayStr(),paidAt,paidBy:actor||"ADMINISTRADOR",opCode:item.opCode||"",client:item.client||"",description:item.description||"",value:n(item.value),paymentDesigner:n(p.designer),companyShare:n(p.company),paymentRate:p.rate});
+ const id=designStatId(item.designer,item.date),ref=db.collection("designStats").doc(id);
+ await db.runTransaction(async tx=>{
+   const snap=await tx.get(ref),old=snap.exists?(snap.data()||{}):{};
+   tx.set(ref,{designer:String(item.designer||"").trim().toUpperCase(),date:item.date||todayStr(),count:n(old.count)+1,value:n(old.value)+n(item.value),designerPay:n(old.designerPay)+n(p.designer),companyShare:n(old.companyShare)+n(p.company),paidCount:n(old.paidCount)+1,updatedAt:paidAt,lastPaidAt:paidAt,lastPaidBy:actor||"ADMINISTRADOR"},{merge:true});
+ });
+ // El detalle sale de pendientes, pero permanece en el histórico hasta el siguiente mes.
+ await db.collection("designLogs").doc(item.id).delete();
+}
+
+
+async function purgeMonthlyDesignPayments(){
+ if(!db)return;
+ try{
+  const now=new Date(),monthStart=new Date(now.getFullYear(),now.getMonth(),1).getTime();
+  const old=await db.collection("designPayments").where("paidAt","<",monthStart).get();
+  for(let i=0;i<old.docs.length;i+=400){
+   const batch=db.batch();old.docs.slice(i,i+400).forEach(doc=>batch.delete(doc.ref));await batch.commit();
+  }
+ }catch(e){console.warn("No se pudo limpiar el historial mensual de pagos",e)}
+}
+
+function deleteDesign(id){
+ if(!db)return;
+ const item=(state.designLogs||[]).find(x=>x.id===id);
+ if(!item)return;
+ const canDelete=state.isAdmin||state.isViewer||(!state.isViewer&&item.designer===state.role);
+ if(!canDelete){
+  alert("Solo puedes eliminar tus propios diseños. El administrador puede eliminar cualquier diseño.");
+  return;
+ }
+ if(!confirm("¿Eliminar este diseño?\n\nEsta acción es para pruebas/limpieza y NO crea estadísticas.\n\nOP: "+(item.opCode||"—")+"\nDiseñador: "+(item.designer||"—")+"\nValor: $ "+fmtNum(item.value,0)))return;
+ db.collection("designLogs").doc(id).delete().catch(err=>alert("No se pudo eliminar: "+err.message));
+}
+function migrateLegacyPaidDesigns(){
+ // Compatibilidad con v25: los registros antiguos ya marcados como PAGADO
+ // se mantienen visibles hasta que el administrador los liquide nuevamente.
+ // Los nuevos pagos sí usan consolidación y eliminación inmediata.
+}
+
+function designsTab(){
+ const admin=state.isAdmin, viewer=state.isViewer;
+ const selectedDesigner=(admin||viewer)?(state.dashDesignerFilter||"TODOS"):(state.role||"");
+ const liveRows=(state.designLogs||[]).filter(x=>
+   (selectedDesigner==="TODOS"||!selectedDesigner||x.designer===selectedDesigner)
+ );
+ const statsRows=designStatsRows().filter(x=>
+   (selectedDesigner==="TODOS"||!selectedDesigner||x.designer===selectedDesigner)
+ );
+ const start=state.designStart||"",end=state.designEnd||"";
+ const inPeriod=x=>(!start||String(x.date||"")>=start)&&(!end||String(x.date||"")<=end);
+ const filtered=liveRows.filter(inPeriod);
+ const paidStats=statsRows.filter(inPeriod);
+
+ // El informe combina: registros operativos todavía no pagados + históricos
+ // consolidados de pagos ya eliminados. Así el detalle se limpia, pero las cifras no.
+ const liveValue=filtered.reduce((a,x)=>a+n(x.value),0);
+ const statValue=paidStats.reduce((a,x)=>a+n(x.value),0);
+ const liveCount=filtered.length;
+ const statCount=paidStats.reduce((a,x)=>a+n(x.count),0);
+ const total=liveValue+statValue, count=liveCount+statCount;
+
+ const livePayments=filtered.map(x=>designPayment(x.value));
+ const statDesignerPay=paidStats.reduce((a,x)=>a+n(x.designerPay),0);
+ const statCompanyShare=paidStats.reduce((a,x)=>a+n(x.companyShare),0);
+ const totalDesignerPay=livePayments.reduce((a,x)=>a+x.designer,0)+statDesignerPay;
+ const totalCompanyShare=livePayments.reduce((a,x)=>a+x.company,0)+statCompanyShare;
+ const paidCount=paidStats.reduce((a,x)=>a+n(x.paidCount||x.count),0);
+ const paidDesignerValue=statDesignerPay;
+ const pendingDesignerValue=livePayments.reduce((a,x)=>a+x.designer,0);
+ const pendingCount=filtered.length;
+ const pendingValue=liveValue;
+
+ const by=DESIGNERS.map((d,i)=>{
+   const live=filtered.filter(x=>x.designer===d);
+   const hist=paidStats.filter(x=>x.designer===d);
+   const value=live.reduce((a,y)=>a+n(y.value),0)+hist.reduce((a,y)=>a+n(y.value),0);
+   const qty=live.length+hist.reduce((a,y)=>a+n(y.count),0);
+   return {d,live,hist,value,qty,color:["#21c8ff","#a66cff","#4ee39a","#ffbf4d"][i%4]};
+ }).filter(x=>x.qty>0);
+
+ const maxValue=Math.max(1,...by.map(x=>x.value));
+ const maxQty=Math.max(1,...by.map(x=>x.qty));
+ const topValue=by.slice().sort((a,b)=>b.value-a.value)[0];
+ const topQty=by.slice().sort((a,b)=>b.qty-a.qty)[0];
+
+ const days={};
+ filtered.forEach(x=>{if(x.date)days[x.date]=(days[x.date]||0)+1});
+ paidStats.forEach(x=>{if(x.date)days[x.date]=(days[x.date]||0)+n(x.count)});
+ const trend=Object.keys(days).sort().map(d=>({d,value:days[d]}));
+ const maxTrend=Math.max(1,...trend.map(x=>x.value));
+
+ const shares=by.map(x=>({d:x.d,value:x.value,color:x.color}));
+ let acc=0;
+ const donutParts=shares.map(x=>{const p=total?x.value/total*100:0;const out={...x,start:acc,end:acc+p};acc+=p;return out});
+ const periodText=start&&end?(start===end?start:`${start} → ${end}`):"Todo el historial disponible";
+
+ // Ranking de cantidades y valores, explícito y separado.
+ const qtyRank=by.slice().sort((a,b)=>b.qty-a.qty||b.value-a.value);
+ const valueRank=by.slice().sort((a,b)=>b.value-a.value||b.qty-a.qty);
+
+ return `<section class="design-dashboard">
+  ${admin?`<div class="op-card">
+   <form id="design-form">
+    <div class="design-hero-top">
+     <div>
+      <div class="dash-kicker">ADMINISTRACIÓN · REGISTRO DE DISEÑO</div>
+      <h2 style="margin:5px 0 0;color:#fff">Registrar diseño para cualquier diseñador</h2>
+      <p style="margin:4px 0 0;color:#9db1cc;font-size:11px">El administrador puede crear diseños de prueba, registrar producción real y eliminarlos cuando lo necesite.</p>
+     </div>
+    </div>
+    <div class="op-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-top:14px">
+     <label class="op-field"><span>Diseñador *</span><select required name="designer">${optionsHtml(DESIGNERS,"")}</select></label>
+     <label class="op-field"><span>Orden de producción (OP) *</span><input required name="opCode" maxlength="40" placeholder="Ej. OP-CARLOS-0001"></label>
+     <label class="op-field">Fecha<input required type="date" name="date" value="${todayStr()}"></label>
+     <label class="op-field">Cliente<input required name="client" maxlength="160"></label>
+     <label class="op-field">Descripción de diseño<input required name="description" maxlength="500"></label>
+     <label class="op-field">Valor total cobrado (COP)<input required type="number" min="0" step="1" name="value"></label>
+     <label class="op-field"><span>Pago al diseñador</span><input id="design-pay-preview" type="text" value="$ 0" readonly style="color:#4ee39a!important;font-weight:900!important;border-color:#2d9f75!important;background:#071f1a!important"></label>
+     <label class="op-field"><span>Participación empresa</span><input id="design-company-preview" type="text" value="$ 0" readonly style="color:#63cfff!important;font-weight:900!important;border-color:#2868a9!important;background:#071a36!important"></label>
+    </div>
+    <p class="op-note">Regla especial: si el valor cobrado es exactamente <b>$10.000</b>, el diseñador recibe el 100% y la empresa $0.</p>
+    <button class="op-btn op-btn-primary" style="margin-top:12px">Registrar diseño</button>
+   </form>
+  </div>`:
+  (!viewer?`<div class="op-card">
+   <form id="design-form">
+    <div class="design-hero-top"><div><div class="dash-kicker">REGISTRO DE DISEÑO</div><h2 style="margin:5px 0 0;color:#fff">Registrar diseño realizado</h2><p style="margin:4px 0 0;color:#9db1cc;font-size:11px">Cada diseño queda asociado a una Orden de Producción.</p></div></div>
+    <div class="op-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-top:14px">
+     <label class="op-field"><span>Orden de producción (OP) *</span><input required name="opCode" maxlength="40" placeholder="Ej. OP-CARLOS-0001"></label>
+     <label class="op-field">Fecha<input required type="date" name="date" value="${todayStr()}"></label>
+     <label class="op-field">Cliente<input required name="client" maxlength="160"></label>
+     <label class="op-field">Descripción de diseño<input required name="description" maxlength="500"></label>
+     <label class="op-field">Valor total cobrado (COP)<input required type="number" min="0" step="1" name="value"></label>
+     <label class="op-field"><span>Pago al diseñador</span><input id="design-pay-preview" type="text" value="$ 0" readonly style="color:#4ee39a!important;font-weight:900!important;border-color:#2d9f75!important;background:#071f1a!important"></label>
+     <label class="op-field"><span>Participación empresa</span><input id="design-company-preview" type="text" value="$ 0" readonly style="color:#63cfff!important;font-weight:900!important;border-color:#2868a9!important;background:#071a36!important"></label>
+    </div>
+    <p class="op-note">Regla especial: si el valor cobrado es exactamente <b>$10.000</b>, el diseñador recibe el 100% y la empresa $0.</p>
+    <button class="op-btn op-btn-primary" style="margin-top:12px">Registrar diseño</button>
+   </form>
+  </div>`:"")}
+
+  <div class="design-hero">
+   <div class="design-hero-top">
+    <div><div class="dash-kicker">CENTRO DE RENDIMIENTO · DISEÑO</div><h2>${admin?"Rendimiento de diseño":"Consulta de rendimiento de diseño"}</h2><p>El periodo combina diseños pendientes con cifras consolidadas de diseños ya pagados y eliminados.</p></div>
+    <div style="padding:9px 12px;border:1px solid #3c7fbb;border-radius:10px;background:#09234a;color:#9edaff;font-size:10px;font-weight:800">PERIODO · ${esc(periodText)}</div>
+   </div>
+   ${(admin||viewer)?`<div class="op-row" style="margin-top:14px">
+     <label class="op-field" style="min-width:150px">Diseñador<select id="design-filter"><option value="TODOS">Todos</option>${DESIGNERS.map(d=>`<option value="${d}" ${selectedDesigner===d?"selected":""}>${d}</option>`).join("")}</select></label>
+     <label class="op-field" style="min-width:150px">Desde<input id="design-start" type="date" value="${start}"></label>
+     <label class="op-field" style="min-width:150px">Hasta<input id="design-end" type="date" value="${end}"></label>
+    </div>`:""}
+   <div class="design-kpis">
+    <div class="design-kpi"><span>DISEÑOS DEL PERIODO</span><strong>${fmtNum(count,0)}</strong><small>pendientes + liquidados</small></div>
+    <div class="design-kpi"><span>VALOR TOTAL</span><strong>$ ${fmtNum(total,0)}</strong><small>COP · no se pierde al pagar</small></div>
+    <div class="design-kpi"><span>YA PAGADO A DISEÑADORES</span><strong>$ ${fmtNum(paidDesignerValue,0)}</strong><small>${fmtNum(paidCount,0)} diseños liquidados</small></div>
+    <div class="design-kpi"><span>FALTA POR PAGAR</span><strong>$ ${fmtNum(pendingDesignerValue,0)}</strong><small>${fmtNum(pendingCount,0)} diseños pendientes</small></div>
+    <div class="design-kpi"><span>PARTICIPACIÓN EMPRESA</span><strong>$ ${fmtNum(totalCompanyShare,0)}</strong><small>incluye históricos consolidados</small></div>
+    <div class="design-kpi"><span>LÍDER EN CANTIDAD</span><strong>${topQty?esc(topQty.d):"—"}</strong><small>${topQty?fmtNum(topQty.qty,0)+" diseños":"sin datos"}</small></div>
+   </div>
+  </div>
+
+  <div class="design-panel" style="margin-top:16px">
+   <h3>💳 Estado de pagos a diseñadores</h3>
+   <div class="design-panel-sub">Comparación directa entre lo que ya se pagó y lo que todavía está pendiente.</div>
+   <div class="design-grid" style="margin-top:10px">
+    <div class="design-panel" style="margin:0"><div class="design-panel-sub">PAGADO</div><div style="font-size:28px;font-weight:900;color:#4ee39a">$ ${fmtNum(paidDesignerValue,0)}</div><div class="design-bar-track"><div class="design-bar-fill" style="width:${Math.min(100,totalDesignerPay?paidDesignerValue/Math.max(totalDesignerPay,1)*100:0)}%;background:linear-gradient(90deg,#20c997,#4ee39a)"></div></div></div>
+    <div class="design-panel" style="margin:0"><div class="design-panel-sub">FALTA POR PAGAR</div><div style="font-size:28px;font-weight:900;color:#ffbf4d">$ ${fmtNum(pendingDesignerValue,0)}</div><div class="design-bar-track"><div class="design-bar-fill" style="width:${Math.min(100,totalDesignerPay?pendingDesignerValue/Math.max(totalDesignerPay,1)*100:0)}%;background:linear-gradient(90deg,#ff8f3d,#ffbf4d)"></div></div></div>
+   </div>
+  </div>
+
+  <div class="design-grid">
+   <div class="design-panel">
+    <h3>🏆 Líderes del periodo · cantidades</h3>
+    <div class="design-panel-sub">Ranking de diseños realizados, incluyendo los que ya fueron pagados y eliminados del detalle.</div>
+    <div class="design-bars">${qtyRank.map((x,i)=>`<div class="design-bar-row"><div class="design-bar-name"><b style="color:#71d8ff">${i+1}.</b> ${esc(x.d)}</div><div class="design-bar-track"><div class="design-bar-fill" style="width:${Math.max(3,x.qty/maxQty*100)}%;background:linear-gradient(90deg,${x.color},#21c8ff)"></div></div><div class="design-bar-value">${fmtNum(x.qty,0)} diseños</div></div>`).join("")||'<div class="design-empty">Sin registros para este periodo.</div>'}</div>
+   </div>
+   <div class="design-panel">
+    <h3>💰 Líderes del periodo · valores</h3>
+    <div class="design-panel-sub">Ranking por valor total cobrado, no por saldo pendiente.</div>
+    <div class="design-bars">${valueRank.map((x,i)=>`<div class="design-bar-row"><div class="design-bar-name"><b style="color:#71d8ff">${i+1}.</b> ${esc(x.d)}</div><div class="design-bar-track"><div class="design-bar-fill" style="width:${Math.max(3,x.value/maxValue*100)}%;background:linear-gradient(90deg,${x.color},#21c8ff)"></div></div><div class="design-bar-value">$ ${fmtNum(x.value,0)}</div></div>`).join("")||'<div class="design-empty">Sin registros para este periodo.</div>'}</div>
+   </div>
+  </div>
+
+  <div class="design-grid">
+   <div class="design-panel"><h3>Valor cobrado por diseñador</h3><div class="design-panel-sub">Total histórico del periodo seleccionado.</div><div class="design-bars">${by.map(x=>`<div class="design-bar-row"><div class="design-bar-name">${esc(x.d)}</div><div class="design-bar-track"><div class="design-bar-fill" style="width:${Math.max(3,x.value/maxValue*100)}%;background:linear-gradient(90deg,${x.color},#21c8ff)"></div></div><div class="design-bar-value">$ ${fmtNum(x.value,0)}</div></div>`).join("")||'<div class="design-empty">Sin registros para este periodo.</div>'}</div></div>
+   <div class="design-panel"><h3>Participación del valor</h3><div class="design-panel-sub">Distribución porcentual del valor cobrado.</div><div class="design-donut-wrap">${shares.length?`<div class="design-donut" style="background:conic-gradient(${donutParts.map(x=>`${x.color} ${x.start}% ${x.end}%`).join(",")})"><div class="design-donut-center"><b>${total?"100":"0"}%</b><span>distribución</span></div></div>`:'<div class="design-empty">Sin datos.</div>'}</div><div class="design-legend">${shares.map(x=>`<div class="design-legend-row"><i style="background:${x.color}"></i><span>${esc(x.d)}</span><b>${total?Math.round(x.value/total*100):0}%</b></div>`).join("")}</div></div>
+  </div>
+
+  <div class="design-panel"><h3>Ritmo de diseños</h3><div class="design-panel-sub">Cantidad de diseños registrados por día, incluyendo históricos consolidados.</div>${trend.length?`<div class="design-trend">${trend.map(x=>`<div class="design-trend-col"><div class="design-trend-value">${x.value}</div><div class="design-trend-bar" style="height:${Math.max(8,x.value/maxTrend*135)}px"></div><div class="design-trend-label">${new Date(x.d+"T00:00:00").toLocaleDateString("es-CO",{day:"2-digit",month:"short"})}</div></div>`).join("")}</div>`:'<div class="design-empty">Sin actividad en el periodo.</div>'}</div>
+
+  <div class="design-panel">
+   <h3>Detalle de diseños activos</h3>
+   <div class="design-panel-sub">Los diseños pendientes permanecen aquí. Al marcar <b>PAGADO</b>, se guarda un detalle en el histórico mensual del diseñador y se consolida el rendimiento.</div>
+   <div style="overflow:auto">
+    <table class="op-table">
+     <thead><tr><th>Fecha</th><th>OP</th><th>Diseñador</th><th>Cliente</th><th>Descripción</th><th>Valor cobrado</th><th>Pago diseñador</th><th>Acciones</th></tr></thead>
+     <tbody>
+      ${filtered.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(x=>{
+       const p=designPayment(x.value);
+       return `<tr>
+        <td>${esc(x.date)}</td><td><b>${esc(x.opCode||"—")}</b></td><td>${esc(x.designer)}</td><td>${esc(x.client)}</td><td>${esc(x.description)}</td>
+        <td>$ ${fmtNum(x.value,0)}</td><td style="color:#4ee39a;font-weight:900">$ ${fmtNum(p.designer,0)}</td>
+        <td style="white-space:nowrap">${(admin||viewer)?`<button class="op-btn op-btn-sm design-pay-btn" data-design-paid="${esc(x.id)}">PAGADO · CONSOLIDAR</button>`:""} ${(admin||viewer||x.designer===state.role)?`<button class="op-btn op-btn-sm op-btn-danger" data-design-delete="${esc(x.id)}">ELIMINAR</button>`:"—"}</td>
+       </tr>`;
+      }).join("")||`<tr><td colspan="8">No hay diseños activos pendientes en este periodo.</td></tr>`}
+     </tbody>
+    </table>
+   </div>
+  </div>
+  <div class="design-panel">
+   <div class="op-row" style="justify-content:space-between;align-items:center"><div><h3>Histórico mensual de pagos</h3><div class="design-panel-sub">El detalle de pagos se guarda por fuera de las tablas de pendientes. Exporta una copia para verificar diseñador, OP, cliente y fecha.</div></div><div class="op-row"><button type="button" class="op-btn op-btn-primary op-btn-sm" id="export-design-payments">Exportar Excel (CSV)</button><button type="button" class="op-btn op-btn-ghost op-btn-sm" id="print-design-payments">Guardar PDF</button></div></div>
+   <div style="font-size:12px;color:#9db7d3;margin-top:8px">Pagos registrados este mes: <b style="color:#fff">${(state.designPayments||[]).length}</b>. El historial detallado se elimina al cambiar de mes y abrir el sistema.</div>
+  </div>
+ </section>`;
+}
+
+function render(){
+ const active=document.activeElement;
+ const activeField=active&&active.closest?active.closest("[data-field]"):null;
+ const focusKey=activeField?activeField.dataset.field:"";
+ const activeId=active&&active.id?active.id:"";
+ const selectionStart=active&&typeof active.selectionStart==="number"?active.selectionStart:null;
+ const selectionEnd=active&&typeof active.selectionEnd==="number"?active.selectionEnd:null;
+ let body="";
+ // Mostrar selección de perfil y formularios de PIN sin esperar la conexión a Firestore.
+ if(state.showAdminPin)body=pinBox();
+ else if(state.showViewerPin)body=viewerPinBox();
+ else if(state.showDesignerPin)body=designerPinBox();
+ else if(!state.role&&!state.isAdmin&&!state.isViewer&&!state.isReadOnlyConsultation)body=`<div class="op-card" style="margin-top:20px;text-align:center;padding:35px"><b style="color:#ffffff">Elige tu perfil para continuar</b><p class="op-note">Selecciona tu nombre de diseñador. Para Administrador se solicitará el PIN.</p></div>`;
+ else if(firestoreError){
+  body=`<div class="op-modal-bg"><b style="color:#f6602c">No se pudo conectar a la base de datos</b><p style="font-size:13px;line-height:1.6">Detalle técnico: ${esc(firestoreError)}</p><p class="op-note">Verifica que Firestore esté habilitado y que sus reglas permitan lectura y escritura.</p></div>`;
+ }
+ else if(!state.ordersReady||!state.countersReady){
+  body=`<div class="op-card" style="margin-top:20px"><p style="color:#8b96a3">Conectando con la base de datos... Puedes mantener esta pantalla abierta mientras termina la sincronización.</p></div>`;
+ }
+ else if(state.isViewer&&state.tab==="designs")body=tabsBar()+designsTab();
+ else if(state.isViewer||state.isReadOnlyConsultation)body=tabsBar()+ordersTab();
+ else if(state.tab==="dashboard"&&state.isAdmin)body=tabsBar()+dashboardTab();
+ else if(state.tab==="admin"&&state.isAdmin)body=tabsBar()+adminCountersTab();
+  else if(state.tab==="designers"&&state.isAdmin)body=tabsBar()+designersAdminTab();
+ else if(state.tab==="designs"&&(state.isAdmin||(!state.isViewer&&!state.isReadOnlyConsultation&&state.role)))body=tabsBar()+designsTab();
+ else if(state.tab==="orders")body=tabsBar()+ordersTab();
+ else body=tabsBar()+newOrderTab();
+
+ root.innerHTML=header()+body;
+ bind();
+ if(focusKey||activeId){
+  const next=focusKey
+   ? root.querySelector(`[data-field="${CSS.escape(focusKey)}"]`)
+   : (activeId?root.querySelector(`#${CSS.escape(activeId)}`):null);
+  if(next){
+   next.focus({preventScroll:true});
+   if(selectionStart!=null&&typeof next.setSelectionRange==="function"){
+    try{next.setSelectionRange(selectionStart,selectionEnd==null?selectionStart:selectionEnd)}catch(e){}
+   }
+  }
+ }
+}
+
+function autoGrowTextarea(el){
+ if(!el)return;
+ el.style.height="auto";
+ el.style.height=Math.max(el.scrollHeight,54)+"px";
+}
+function bind(){
+ root.querySelectorAll("[data-tab]").forEach(el=>el.onclick=()=>setState({tab:el.dataset.tab}));
+ const roleSel=root.querySelector("#role-select");
+ if(roleSel)roleSel.onchange=e=>{
+  const v=e.target.value;
+  if(v==="__ADMIN__"){state.showAdminPin=true;state.showViewerPin=false;state.showDesignerPin=false;state.adminPinError="";render();return}
+  if(v==="__VIEWER__"){state.pendingReadOnly=false;state.showViewerPin=true;state.showAdminPin=false;state.showDesignerPin=false;state.viewerPinError="";render();return}
+   if(v==="__READONLY__"){state.pendingReadOnly=true;state.showViewerPin=true;state.showAdminPin=false;state.showDesignerPin=false;state.viewerPinError="";render();return}
+  if(DESIGNER_PINS[v]){state.pendingDesigner=v;state.showDesignerPin=true;state.showAdminPin=false;state.showViewerPin=false;state.designerPinError="";render()}
+ };
+
+ const logout=root.querySelector("#logout-btn");
+ if(logout)logout.onclick=()=>{state.role=null;state.isAdmin=false;state.isViewer=false;state.isReadOnlyConsultation=false;state.showAdminPin=false;state.showViewerPin=false;state.showDesignerPin=false;saveSession();setState({tab:"new"})};
+
+ const ap=root.querySelector("#admin-pin-input");
+ const as=root.querySelector("#admin-pin-submit");
+ const ac=root.querySelector("#admin-pin-cancel");
+ const tryAdmin=()=>{
+  if(ap&&ap.value.trim()===ADMIN_PIN){state.role="Administrador";state.isAdmin=true;state.showAdminPin=false;state.adminPinError="";setState({tab:"dashboard"});return}
+  state.adminPinError="PIN incorrecto. Intenta de nuevo.";render();
+ };
+ if(as)as.onclick=tryAdmin;
+ if(ap){ap.focus();ap.onkeydown=e=>{if(e.key==="Enter")tryAdmin()}}
+ if(ac)ac.onclick=()=>setState({showAdminPin:false,adminPinError:""});
+
+ const vp=root.querySelector("#viewer-pin-input");
+ const vs=root.querySelector("#viewer-pin-submit");
+ const vc=root.querySelector("#viewer-pin-cancel");
+ const tryViewer=()=>{
+  const entered=vp?vp.value.trim():"";
+  if(state.pendingReadOnly && entered===READONLY_VIEWER_PIN){
+   state.role="CONSULT-ART SOLO LECTURA";state.isAdmin=false;state.isViewer=false;state.isReadOnlyConsultation=true;state.pendingReadOnly=false;state.showViewerPin=false;state.viewerPinError="";saveSession();setState({tab:"orders"});return;
+  }
+  if(!state.pendingReadOnly && entered===VIEWER_PIN){
+   state.role="CONSULT-ART";state.isAdmin=false;state.isViewer=true;state.isReadOnlyConsultation=false;state.showViewerPin=false;state.viewerPinError="";saveSession();setState({tab:"orders"});return;
+  }
+  state.viewerPinError="PIN incorrecto. Intenta de nuevo.";render();
+ };
+ if(vs)vs.onclick=tryViewer;
+ if(vp){vp.focus();vp.onkeydown=e=>{if(e.key==="Enter")tryViewer()}}
+ if(vc)vc.onclick=()=>setState({showViewerPin:false,pendingReadOnly:false,viewerPinError:""});
+
+ const dp=root.querySelector("#designer-pin-input");
+ const ds=root.querySelector("#designer-pin-submit");
+ const dc=root.querySelector("#designer-pin-cancel");
+ const tryDesigner=()=>{
+  if(dp&&dp.value.trim()===DESIGNER_PINS[state.pendingDesigner]){
+   state.role=state.pendingDesigner;state.isAdmin=false;state.showDesignerPin=false;state.designerPinError="";saveSession();setState({tab:"new"});return
+  }
+  state.designerPinError="PIN incorrecto. Intenta de nuevo.";render();
+ };
+ if(ds)ds.onclick=tryDesigner;
+ if(dp){dp.focus();dp.onkeydown=e=>{if(e.key==="Enter")tryDesigner()}}
+ if(dc)dc.onclick=()=>setState({showDesignerPin:false,pendingDesigner:null,designerPinError:""});
+
+ const imageInput=root.querySelector("#order-image");
+ const imagePasteZone=root.querySelector("#image-paste-zone");
+ const addImages=async(files,sourceInput)=>{
+  const list=Array.from(files||[]).filter(f=>f&&f.type&&f.type.startsWith("image/"));
+  if(!list.length){if(files&&files.length)alert("El contenido pegado no contiene una imagen.");return}
+  const current=imageArray(state.form.imageData),available=5-current.length;
+  if(available<=0){alert("Puedes guardar hasta 5 imágenes por OP.");if(sourceInput)sourceInput.value="";return}
+  const selected=list.slice(0,available);
+  if(list.length>available)alert("Solo se agregarán las primeras "+available+" imágenes para completar el máximo de 5.");
+  try{
+   const results=[];
+   for(const file of selected)results.push(await readAndCompressImage(file));
+   state.form.imageData=current.concat(results.map(r=>r.data));
+   const existingNames=Array.isArray(state.form.imageNames)?state.form.imageNames:[];
+   state.form.imageNames=existingNames.concat(results.map((r,i)=>r.name||("Imagen "+(existingNames.length+i+1))));
+   state.form.imageName=state.form.imageNames[0]||"";
+   render();
+  }catch(err){alert(err.message);if(sourceInput)sourceInput.value=""}
+ };
+ if(imageInput)imageInput.onchange=e=>addImages(e.target.files,imageInput);
+ if(imagePasteZone)imagePasteZone.onpaste=e=>{
+  const items=Array.from(e.clipboardData?.items||[]);
+  const files=items.map(item=>item.kind==="file"?item.getAsFile():null).filter(Boolean);
+  if(files.length){e.preventDefault();addImages(files,null)}
+ };
+ root.querySelectorAll(".remove-single-image").forEach(button=>{
+  button.onclick=()=>{
+   const index=Number(button.dataset.imageIndex);
+   const images=imageArray(state.form.imageData);
+   const names=Array.isArray(state.form.imageNames)?state.form.imageNames.slice():[];
+   if(!Number.isInteger(index)||index<0||index>=images.length)return;
+   images.splice(index,1);
+   names.splice(index,1);
+   state.form.imageData=images;
+   state.form.imageNames=names;
+   state.form.imageName=names[0]||"";
+   render();
+  };
+ });
+
+ const form=root.querySelector("#order-form");
+ if(form){
+  const tabOrder=["designer","client","clientPhone","job","date","deliveryDate","deliveryTime","width","height","materialWidth","materialLength","quantity","machine","material","materialReference","laminate","laminateReference","finish","eyelets","status","paymentMethod","abono","saldo","notes"];
+  // El recorrido con TAB queda limitado exclusivamente a los campos de la OP.
+  // No usamos tabindex positivos porque pueden provocar saltos cuando el formulario se vuelve a renderizar.
+  tabOrder.forEach((key)=>{
+   const el=form.querySelector(`[data-field="${CSS.escape(key)}"]`);
+   if(el)el.tabIndex=0;
+  });
+  const opFields=tabOrder.map(key=>form.querySelector(`[data-field="${CSS.escape(key)}"]`)).filter(Boolean);
+  opFields.forEach((el,index)=>{
+   el.onkeydown=(e)=>{
+    if(e.key!="Tab")return;
+    e.preventDefault();
+    const nextIndex=e.shiftKey ? index-1 : index+1;
+    const targetIndex=nextIndex<0 ? opFields.length-1 : nextIndex>=opFields.length ? 0 : nextIndex;
+    const target=opFields[targetIndex];
+    if(target){
+     target.focus({preventScroll:true});
+     if(typeof target.select==="function" && target.tagName!=="SELECT" && target.type!=="date" && target.type!=="time")target.select();
+    }
+   };
+  });
+  const pasteZone=form.querySelector("#image-paste-zone");
+  if(pasteZone)pasteZone.tabIndex=-1;
+  const fileInput=form.querySelector("#order-image");
+  if(fileInput)fileInput.tabIndex=-1;
+  form.querySelectorAll("[data-field]").forEach(el=>{
+   const key=el.dataset.field;
+   el.oninput=()=>{
+    state.form[key]=el.value;
+    if(key==="notes")autoGrowTextarea(el);
+   };
+   el.onchange=()=>{
+    state.form[key]=el.value;
+    if(key==="height")syncMaterialLength();
+    if(["height","finish","width","quantity","paymentMethod"].includes(key)){
+     const focusKey=document.activeElement?.dataset?.field||key;
+     render();
+     if(focusKey){
+      requestAnimationFrame(()=>{
+       const next=document.querySelector(`#order-form [data-field="${CSS.escape(focusKey)}"]`);
+       if(next){
+        next.focus({preventScroll:true});
+        if(typeof next.select==="function" && next.tagName!=="SELECT" && next.type!=="date" && next.type!=="time")next.select();
+       }
+      });
+     }
+    }
+   };
+  });
+  form.onsubmit=e=>{e.preventDefault();saveClientSuggestion(state.form.client);submitOrder()};
+  const clientInput=form.querySelector('[data-field="client"]');
+  if(clientInput)clientInput.onblur=()=>saveClientSuggestion(clientInput.value);
+  const notesArea=form.querySelector('textarea[data-field="notes"]');
+  if(notesArea)autoGrowTextarea(notesArea);
+ }
+ const cancel=root.querySelector("#cancel-edit");
+ if(cancel)cancel.onclick=()=>{state.editingId=null;state.form=blankForm();setState({tab:"orders"})};
+
+ const designerAdminForm=root.querySelector("#designer-admin-form");
+  if(designerAdminForm)designerAdminForm.onsubmit=e=>{e.preventDefault();createDesigner(root.querySelector("#new-designer-name").value,root.querySelector("#new-designer-pin").value)};
+  root.querySelectorAll("[data-designer-remove]").forEach(el=>el.onclick=()=>removeDesigner(el.dataset.designerRemove));
+
+  const search=root.querySelector("#search-input");
+ if(search)search.oninput=e=>{
+  const y=window.scrollY;
+  state.search=e.target.value;
+  state.orderHistoryPage=1;
+  render();
+  requestAnimationFrame(()=>window.scrollTo(0,y));
+ };
+ const df=root.querySelector("#designer-filter");
+ if(df)df.onchange=e=>setState({filterDesigner:e.target.value,orderHistoryPage:1});
+ const sf=root.querySelector("#status-filter");
+ if(sf)sf.onchange=e=>setState({filterStatus:e.target.value,orderHistoryPage:1});
+ const dash=root.querySelector("#dash-designer-filter");
+ if(dash)dash.onchange=e=>setState({dashDesignerFilter:e.target.value});
+ const dm=document.getElementById("dash-machine-filter");
+ if(dm)dm.onchange=e=>setState({dashMachineFilter:e.target.value});
+ const dashStartEl=document.getElementById("dash-start-date");
+ if(dashStartEl)dashStartEl.onchange=e=>setState({dashStartDate:e.target.value});
+ const dashEndEl=document.getElementById("dash-end-date");
+ if(dashEndEl)dashEndEl.onchange=e=>setState({dashEndDate:e.target.value});
+ root.querySelectorAll("[data-dash-range]").forEach(el=>el.onclick=()=>{const [a,b]=el.dataset.dashRange.split("|");setState({dashStartDate:a,dashEndDate:b})});
+
+ root.querySelectorAll("[data-edit]").forEach(el=>el.onclick=()=>startEdit(el.dataset.edit));
+ root.querySelectorAll("[data-delete]").forEach(el=>el.onclick=()=>deleteOrder(el.dataset.delete));
+ root.querySelectorAll("[data-detail]").forEach(el=>el.onclick=()=>setState({detailId:el.dataset.detail}));
+ root.querySelectorAll("[data-pdf]").forEach(el=>el.onclick=()=>exportOrderPdf(el.dataset.pdf));
+ root.querySelectorAll("[data-status-quick]").forEach(el=>el.onclick=()=>quickStatus(el.dataset.statusQuick,el.dataset.statusValue));
+ root.querySelectorAll("[data-order-page]").forEach(el=>el.onclick=()=>{const p=Math.max(1,n(el.dataset.orderPage));setState({orderHistoryPage:p})});
+ const close=root.querySelector("#close-detail");
+ if(close)close.onclick=()=>setState({detailId:null});
+ const detailSave=root.querySelector("#detail-status-save");
+ if(detailSave)detailSave.onclick=()=>{const select=root.querySelector("#detail-status-select");if(select&&state.detailId)quickStatus(state.detailId,select.value);};
+ root.querySelectorAll("[data-cleanup]").forEach(el=>el.onclick=()=>setState({cleanupConfirmDays:Number(el.dataset.cleanup)}));
+ const cleanupConfirm=root.querySelector("#cleanup-confirm");
+ if(cleanupConfirm)cleanupConfirm.onclick=()=>purgeOldOrders(Number(cleanupConfirm.dataset.cleanup));
+ const cleanupCancel=root.querySelector("#cleanup-cancel");
+ if(cleanupCancel)cleanupCancel.onclick=()=>setState({cleanupConfirmDays:null});
+
+ root.querySelectorAll("[data-reset-ask]").forEach(el=>el.onclick=()=>setState({confirmResetFor:el.dataset.resetAsk}));
+ const rc=root.querySelector("#reset-confirm");
+ if(rc)rc.onclick=()=>resetCounter(rc.dataset.resetConfirm);
+ const rx=root.querySelector("#reset-cancel");
+ if(rx)rx.onclick=()=>setState({confirmResetFor:null});
+ root.querySelectorAll("[data-reset-design-ask]").forEach(el=>el.onclick=()=>setState({confirmResetDesignFor:el.dataset.resetDesignAsk}));
+ root.querySelectorAll("[data-reset-design-confirm]").forEach(el=>el.onclick=()=>resetDesignsForDesigner(el.dataset.resetDesignConfirm));
+ root.querySelectorAll("[data-reset-design-cancel]").forEach(el=>el.onclick=()=>setState({confirmResetDesignFor:null}));
+ const designForm=root.querySelector("#design-form");
+ if(designForm){
+  const designValueInput=designForm.querySelector('[name="value"]');
+  const designPayPreview=root.querySelector("#design-pay-preview");
+  const designCompanyPreview=root.querySelector("#design-company-preview");
+  const updateDesignPay=()=>{
+   const value=Math.max(0,n(designValueInput?.value));
+   const p=designPayment(value);
+   if(designPayPreview)designPayPreview.value="$ "+fmtNum(p.designer,0);
+   if(designCompanyPreview)designCompanyPreview.value="$ "+fmtNum(p.company,0);
+  };
+  if(designValueInput)designValueInput.addEventListener("input",updateDesignPay);
+  updateDesignPay();
+  designForm.onsubmit=e=>{
+   e.preventDefault();
+   if(state.isViewer)return;
+   if(!db)return alert("La base de datos no está disponible.");
+   const fd=new FormData(designForm);
+   const opCode=String(fd.get("opCode")||"").trim().toUpperCase();
+   const date=String(fd.get("date")||"");
+   const client=String(fd.get("client")||"").trim();
+   const description=String(fd.get("description")||"").trim();
+   const value=Math.max(0,n(fd.get("value")));
+   if(!opCode){alert("Debes diligenciar la Orden de Producción.");return}
+   if(!date||!client||!description||value<0){alert("Completa todos los campos obligatorios.");return}
+   const p=designPayment(value);
+   const selectedDesigner=state.isAdmin
+    ? String(fd.get("designer")||"").trim().toUpperCase()
+    : String(state.role||"").trim().toUpperCase();
+   if(!DESIGNERS.includes(selectedDesigner)){alert("Selecciona un diseñador válido.");return}
+   const item={
+    designer:selectedDesigner,date,client,description,value,opCode,
+    paymentRate:p.rate,paymentDesigner:p.designer,companyShare:p.company,
+    paid:false,paidAt:null,paidBy:null,createdAt:Date.now()
+   };
+   db.collection("designLogs").add(item).then(()=>{
+    designForm.reset();
+    const dateInput=designForm.querySelector('[name="date"]');if(dateInput)dateInput.value=todayStr();
+    updateDesignPay();
+    alert("Diseño registrado correctamente.");
+   }).catch(err=>alert("No se pudo guardar: "+err.message));
+  };
+ }
+
+ root.querySelectorAll("[data-design-paid]").forEach(el=>el.onclick=async()=>{
+  if(!(state.isAdmin||state.isViewer)||!db)return;
+  const id=el.dataset.designPaid;
+  const item=(state.designLogs||[]).find(x=>x.id===id);
+  if(!item)return;
+  const p=designPayment(item.value);
+  if(!confirm("¿Confirmar el pago y guardar el detalle en el histórico mensual?\\n\\nOP: "+(item.opCode||"—")+"\\nDiseñador: "+(item.designer||"—")+"\\nPago diseñador: $ "+fmtNum(p.designer,0)+"\\n\\nEl detalle quedará disponible en el histórico de pagos hasta el cambio de mes."))return;
+  try{
+    await consolidatePaidDesign(item,state.isAdmin?"ADMINISTRADOR":"CONSULTA");
+    alert("Pago registrado en el histórico mensual. El diseño salió de pendientes y las cifras quedaron consolidadas en Rendimiento.");
+  }catch(err){
+    alert("No se pudo liquidar el diseño: "+err.message);
+  }
+ });
+ root.querySelectorAll("[data-design-delete]").forEach(el=>el.onclick=()=>deleteDesign(el.dataset.designDelete));
+
+ const exportPayments=root.querySelector("#export-design-payments");
+ if(exportPayments)exportPayments.onclick=()=>{
+  const rows=(state.designPayments||[]).filter(x=>(state.dashDesignerFilter==="TODOS"||!state.dashDesignerFilter||x.designer===state.dashDesignerFilter)).sort((a,b)=>n(b.paidAt)-n(a.paidAt));
+  if(!rows.length){alert("No hay pagos en el histórico mensual para exportar.");return}
+  const cols=[["Fecha de pago",x=>x.paidAt?new Date(x.paidAt).toLocaleString("es-CO"):""],["Diseñador",x=>x.designer],["OP",x=>x.opCode],["Cliente",x=>x.client],["Diseño",x=>x.description],["Valor cobrado",x=>x.value],["Pago diseñador",x=>x.paymentDesigner],["Participación empresa",x=>x.companyShare],["Registrado por",x=>x.paidBy]];
+  const csv=[cols.map(c=>c[0]),...rows.map(x=>cols.map(c=>String(c[1](x)??"").replace(/"/g,'""'))) ].map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(";")).join("\r\n");
+  const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="CONSULT-ART_historico_pagos_"+todayStr()+".csv";a.click();URL.revokeObjectURL(url);
+ };
+ const printPayments=root.querySelector("#print-design-payments");
+ if(printPayments)printPayments.onclick=()=>{
+  const rows=(state.designPayments||[]).filter(x=>(state.dashDesignerFilter==="TODOS"||!state.dashDesignerFilter||x.designer===state.dashDesignerFilter));
+  if(!rows.length){alert("No hay pagos en el histórico mensual para imprimir.");return}
+  const w=window.open("","_blank");if(!w){alert("Permite las ventanas emergentes para generar el PDF.");return}
+  w.document.write('<html><head><title>CONSULT-ART - Histórico de pagos</title><style>body{font:12px Arial;padding:20px}h1{font-size:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #bbb;padding:6px;text-align:left}th{background:#e8eef5}</style></head><body><h1>CONSULT-ART · Histórico mensual de pagos de diseños</h1><p>Generado: '+new Date().toLocaleString("es-CO")+'</p><table><thead><tr><th>Fecha pago</th><th>Diseñador</th><th>OP</th><th>Cliente</th><th>Diseño</th><th>Valor</th><th>Pago diseñador</th><th>Registrado por</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.paidAt?new Date(x.paidAt).toLocaleString("es-CO"):"")+'</td><td>'+esc(x.designer)+'</td><td>'+esc(x.opCode)+'</td><td>'+esc(x.client)+'</td><td>'+esc(x.description)+'</td><td>$ '+fmtNum(x.value,0)+'</td><td>$ '+fmtNum(x.paymentDesigner,0)+'</td><td>'+esc(x.paidBy)+'</td></tr>').join("")+'</tbody></table></body></html>');w.document.close();w.focus();w.print();
+ };
+ const dfilter=root.querySelector("#design-filter");if(dfilter)dfilter.onchange=e=>setState({dashDesignerFilter:e.target.value});
+ const dstart=root.querySelector("#design-start");if(dstart)dstart.onchange=e=>setState({designStart:e.target.value});
+ const dend=root.querySelector("#design-end");if(dend)dend.onchange=e=>setState({designEnd:e.target.value});
+}
+
+loadSession();
+render();
+initFirebase();
+
+})();
+</script>
+</body>
+</html>
